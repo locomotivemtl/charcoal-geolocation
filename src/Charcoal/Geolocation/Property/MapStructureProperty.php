@@ -17,6 +17,6 @@ class MapStructureProperty extends StructureProperty
      */
     public function type()
     {
-        return 'charcoal/geolocation/property/map-structure';
+        return 'charcoal/geolocation/property/map-structure-property';
     }
 }

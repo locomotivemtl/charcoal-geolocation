@@ -4,8 +4,7 @@
      * Property_Input_Map_Widget Javascript class
      *
      */
-    Charcoal.Admin.Property_Input_Map_Widget = function (data)
-    {
+    Charcoal.Admin.Property_Input_Map_Widget = function (data) {
         // Input type
         data.input_type = 'charcoal/geolocation/property/input/map-widget';
 
@@ -28,7 +27,8 @@
             $.getScript(
                     'https://maps.googleapis.com/maps/api/js?sensor=false' +
                     '&callback=_tmp_google_onload_function&key=' + data.data.api_key,
-                    function () {}
+                    function () {
+                    }
             );
         } else {
             that.init();
@@ -39,8 +39,7 @@
     Charcoal.Admin.Property_Input_Map_Widget.prototype.constructor = Charcoal.Admin.Property_Input_Map_Widget;
     Charcoal.Admin.Property_Input_Map_Widget.prototype.parent = Charcoal.Admin.Property.prototype;
 
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.init = function ()
-    {
+    Charcoal.Admin.Property_Input_Map_Widget.prototype.init = function () {
         if (typeof window._tmp_google_onload_function !== 'undefined') {
             delete window._tmp_google_onload_function;
         }
@@ -58,35 +57,35 @@
         }
 
         var default_styles = {
-            strokeColor: '#000000',
+            strokeColor  : '#000000',
             strokeOpacity: 0.8,
-            strokeWeight: 3,
-            fillColor: '#ffffff',
-            fillOpacity: 0.35,
-            hover: {
-                strokeColor: '#000000',
+            strokeWeight : 3,
+            fillColor    : '#ffffff',
+            fillOpacity  : 0.35,
+            hover        : {
+                strokeColor  : '#000000',
                 strokeOpacity: 1,
-                strokeWeight: 2,
-                fillColor: '#ffffff',
-                fillOpacity: 0.5
+                strokeWeight : 2,
+                fillColor    : '#ffffff',
+                fillOpacity  : 0.5
             },
-            focused: {
+            focused      : {
                 fillOpacity: 0.8
             }
         };
 
         var map_options = {
             default_styles: default_styles,
-            use_clusterer: false,
-            map: {
-                center: {
+            use_clusterer : false,
+            map           : {
+                center    : {
                     x: 45.3712923,
                     y: -73.9820994
                 },
-                zoom: 14,
-                mapType: 'roadmap',
+                zoom      : 14,
+                mapType   : 'roadmap',
                 coordsType: 'inpage', // array, json? (vs ul li)
-                map_mode: 'default'
+                map_mode  : 'default'
             }
         };
 
@@ -101,13 +100,35 @@
             var places = JSON.parse(current_value);
 
             // Merge places with default styles
-            var merged_places = {};
+            var merged_places = [];
             var index = 0;
-            for (var ident in places) {
-                index++;
-                merged_places[ ident ] = places[ ident ];
-                merged_places[ ident ].styles = $.extend(places[ ident ].styles, default_styles);
-            }
+
+            var default_place_opts = {
+                style: default_styles,
+                editable: true,
+                draggable: true
+            };
+
+            $.each(places.points, function (index, coords) {
+                merged_places.push($.extend({
+                    type: 'marker',
+                    coords: coords
+                }, default_place_opts));
+            });
+
+            $.each(places.polylines, function (index, paths) {
+                merged_places.push($.extend({
+                    type: 'line',
+                    paths: paths
+                }, default_place_opts));
+            });
+
+            $.each(places.polygons, function (index, paths) {
+                merged_places.push($.extend({
+                    type: 'polygon',
+                    paths: paths
+                }, default_place_opts));
+            });
 
             if (merged_places) {
                 map_options.places = merged_places;
@@ -134,7 +155,7 @@
                 }
         );
 
-        this.controller().set_styles([{ featureType:'poi',elementType:'all',stylers:[{ visibility:'off' }] }]);
+        this.controller().set_styles([{featureType: 'poi', elementType: 'all', stylers: [{visibility: 'off'}]}]);
 
         this.controller().remove_focus();
 
@@ -166,8 +187,7 @@
             }
         });
 
-        this.element().on('click', '.js-add-marker', function (e)
-        {
+        this.element().on('click', '.js-add-marker', function (e) {
             e.preventDefault();
 
             // Find uniq item ident
@@ -190,9 +210,9 @@
             }
 
             that.controller().add_place_by_address('object' + that.object_index(), value, {
-                type: 'marker',
-                draggable: true,
-                editable: true,
+                type           : 'marker',
+                draggable      : true,
+                editable       : true,
                 // After loading the marker object
                 loaded_callback: function (marker) {
                     that.controller().map().setCenter(marker.object().getPosition());
@@ -209,8 +229,7 @@
     /**
      * Return {BB.gmap.controller}
      */
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.controller = function ()
-    {
+    Charcoal.Admin.Property_Input_Map_Widget.prototype.controller = function () {
         return this._controller;
     };
 
@@ -218,18 +237,15 @@
      * This is to prevent any ident duplication
      * Return {Int} Object index
      */
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.object_index = function ()
-    {
+    Charcoal.Admin.Property_Input_Map_Widget.prototype.object_index = function () {
         return ++this._object_inc;
     };
 
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.display_marker_toolbar = function ()
-    {
+    Charcoal.Admin.Property_Input_Map_Widget.prototype.display_marker_toolbar = function () {
         this.$map_maker.addClass('is-header-open');
     };
 
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.hide_marker_toolbar = function ()
-    {
+    Charcoal.Admin.Property_Input_Map_Widget.prototype.hide_marker_toolbar = function () {
         this.$map_maker.removeClass('is-header-open');
     };
 
@@ -243,18 +259,42 @@
      * @return this (chainable)
      */
 
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.save = function ()
-    {
+    Charcoal.Admin.Property_Input_Map_Widget.prototype.save = function () {
         // Get raw map datas
         var raw = this.controller().export();
 
         // We might wanna save ONLY the places values
         var places = (typeof raw.places === 'object') ? raw.places : {};
 
+        // Cleanup for database.
+        var cleaned_places = {
+            points   : [],
+            polylines: [],
+            polygons : []
+        };
+
+        $.each(places, (index, place) => {
+            switch (place.type) {
+                case 'marker':
+                    console.log(place);
+                    if (place.coords.length)
+                        cleaned_places['points'].push(place.coords);
+                    break;
+                case 'line':
+                    if (place.paths.length)
+                        cleaned_places['polylines'].push(place.paths);
+                    break;
+                case 'polygon':
+                    if (place.paths.length)
+                        cleaned_places['polygons'].push(place.paths);
+                    break;
+            }
+        });
+
         // Affect to the current property's input
         // I see no reason to have more than one input hidden here.
         // Split with classes or data if needed
-        this.element().find('input[type=hidden]').val(JSON.stringify(places));
+        this.element().find('input[type=hidden]').val(JSON.stringify(cleaned_places));
 
         return this;
     };
