@@ -1,7 +1,7 @@
 {
     "type": "library",
     "name": "locomotivemtl/charcoal-geolocation",
-    "description": "Charcoal service provider for my cool feature.",
+    "description": "Charcoal geolocation tools",
     "keywords":  [ "locomotive", "charcoal", "framework", "geolocation", "map" ],
     "homepage": "https://locomotivemtl.github.io/charcoal-geolocation/",
     "license": "MIT",
