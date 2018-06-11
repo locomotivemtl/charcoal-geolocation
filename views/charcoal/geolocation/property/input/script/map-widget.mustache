@@ -1,179 +1,221 @@
 <script>
-    /***
-     * `charcoal/admin/property/input/map-widget`
-     * Property_Input_Map_Widget Javascript class
-     *
-     */
-    Charcoal.Admin.Property_Input_Map_Widget = function (data) {
-        // Input type
-        data.input_type = 'charcoal/geolocation/property/input/map-widget';
 
-        Charcoal.Admin.Property.call(this, data);
+    (function () {
 
-        // Scope
-        var that = this;
+        /***
+         * `charcoal/admin/property/input/map-widget`
+         * Property_Input_Map_Widget Javascript class
+         *
+         */
+        var Map = function (data) {
+            // Input type
+            data.input_type = 'charcoal/geolocation/property/input/map-widget';
+            Charcoal.Admin.Property.call(this, data);
 
-        // Controller
-        this._controller = undefined;
-        // Create uniq ident for every entities on the map
-        this._object_inc = 0;
+            this.set_properties(data).init();
+        };
 
-        if (typeof google === 'undefined') {
-            // If google is undefined,
-            window._tmp_google_onload_function = function () {
-                that.init();
+        Map.prototype = Object.create(Charcoal.Admin.Property.prototype);
+        Map.prototype.constructor = Charcoal.Admin.Property_Input_Map_Widget;
+        Map.prototype.parent = Charcoal.Admin.Property.prototype;
+
+        Map.prototype.set_properties = function (data) {
+            // Controller
+            this._controller = undefined;
+            // Create uniq ident for every entities on the map
+            this._object_inc = 0;
+
+            this.$map = this.element();
+            this.$map_input = this.$map.find('input[type=hidden]');
+            this.$map_maker = this.$map.find('.js-map-maker');
+
+            this.editing_mode = data.mode || null;
+            this.is_editing = false;
+            this.$editing_label = this.$map.find('.js-editing-mode-label');
+
+            return this;
+        };
+
+        Map.prototype.init = function () {
+            // Scope
+            var that = this;
+
+            if (typeof google === 'undefined') {
+                $.getScript(
+                        'https://maps.googleapis.com/maps/api/js?sensor=false' +
+                        '&callback=_tmp_google_onload_function&key=' + this.data.data.api_key,
+                        function () {
+                        }
+                );
+
+                // If google is undefined,
+                window._tmp_google_onload_function = function () {
+                    that.init();
+                };
+
+                return;
+            }
+
+            if (typeof window._tmp_google_onload_function !== 'undefined') {
+                delete window._tmp_google_onload_function;
+            }
+            if (typeof BB === 'undefined' || typeof google === 'undefined') {
+                // We don't have what we need
+                console.error('Plugins not loaded');
+                return false;
+            }
+
+            // Shouldn't happen at that point
+            if (typeof this.data.id === 'undefined') {
+                console.error('Missing ID');
+            }
+
+            this.init_configs();
+
+            this.load_places();
+
+            this.init_map();
+
+            this.register_map_actions();
+        };
+
+        Map.prototype.init_configs = function () {
+            var that = this;
+
+            this.default_styles = {
+                strokeColor  : '#000000',
+                strokeOpacity: 0.8,
+                strokeWeight : 5,
+                fillColor    : '#ffffff',
+                fillOpacity  : 0.35,
+                hover        : {
+                    strokeColor  : '#6092f5',
+                    strokeOpacity: 1,
+                    fillColor    : '#ffffff',
+                    fillOpacity  : 0.5
+                },
+                focused      : {
+                    fillOpacity: 0.8,
+                    strokeColor: '#6092f5',
+                    fillColor  : '#6092f5'
+                }
             };
 
-            $.getScript(
-                    'https://maps.googleapis.com/maps/api/js?sensor=false' +
-                    '&callback=_tmp_google_onload_function&key=' + data.data.api_key,
-                    function () {
-                    }
-            );
-        } else {
-            that.init();
-        }
-    };
-
-    Charcoal.Admin.Property_Input_Map_Widget.prototype = Object.create(Charcoal.Admin.Property.prototype);
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.constructor = Charcoal.Admin.Property_Input_Map_Widget;
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.parent = Charcoal.Admin.Property.prototype;
-
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.init = function () {
-        if (typeof window._tmp_google_onload_function !== 'undefined') {
-            delete window._tmp_google_onload_function;
-        }
-        if (typeof BB === 'undefined' || typeof google === 'undefined') {
-            // We don't have what we need
-            console.error('Plugins not loaded');
-            return false;
-        }
-
-        var _data = this.data;
-
-        // Shouldn't happen at that point
-        if (typeof _data.id === 'undefined') {
-            console.error('Missing ID');
-        }
-
-        var default_styles = {
-            strokeColor  : '#000000',
-            strokeOpacity: 0.8,
-            strokeWeight : 3,
-            fillColor    : '#ffffff',
-            fillOpacity  : 0.35,
-            hover        : {
-                strokeColor  : '#000000',
-                strokeOpacity: 1,
-                strokeWeight : 2,
-                fillColor    : '#ffffff',
-                fillOpacity  : 0.5
-            },
-            focused      : {
-                fillOpacity: 0.8
-            }
-        };
-
-        var map_options = {
-            default_styles: default_styles,
-            use_clusterer : false,
-            map           : {
-                center    : {
-                    x: 45.3712923,
-                    y: -73.9820994
+            this.default_map_options = {
+                default_styles: this.default_styles,
+                use_clusterer : false,
+                map           : {
+                    center    : {
+                        x: 45.3712923,
+                        y: -73.9820994
+                    },
+                    zoom      : 14,
+                    mapType   : 'roadmap',
+                    coordsType: 'inpage', // array, json? (vs ul li)
+                    map_mode  : 'default'
                 },
-                zoom      : 14,
-                mapType   : 'roadmap',
-                coordsType: 'inpage', // array, json? (vs ul li)
-                map_mode  : 'default'
-            }
-        };
+                onfocus       : function (item) {
+                    that.on_item_focus(item)
+                },
+                onblur       : function (item) {
+                    that.on_item_blur(item)
+                }
+            };
 
-        map_options = $.extend(true, map_options, _data.data);
-
-        // Get current map state from DB
-        // This is located in the hidden input
-        var current_value = this.element().find('input[type=hidden]').val();
-
-        if (current_value) {
-            // Parse the value
-            var places = JSON.parse(current_value);
-
-            // Merge places with default styles
-            var merged_places = [];
-            var index = 0;
-
-            var default_place_opts = {
-                style: default_styles,
-                editable: true,
+            this.default_place_opts = {
+                style    : this.default_styles,
+                editable : true,
                 draggable: true
             };
 
-            $.each(places.points, function (index, coords) {
-                merged_places.push($.extend({
-                    type: 'marker',
-                    coords: coords
-                }, default_place_opts));
-            });
+            this.map_options = $.extend(true, this.default_map_options, this.data.data);
+        };
 
-            $.each(places.polylines, function (index, paths) {
-                merged_places.push($.extend({
-                    type: 'line',
-                    paths: paths
-                }, default_place_opts));
-            });
+        Map.prototype.init_map = function () {
 
-            $.each(places.polygons, function (index, paths) {
-                merged_places.push($.extend({
-                    type: 'polygon',
-                    paths: paths
-                }, default_place_opts));
-            });
+            // Create new map instance
+            this._controller = new window.BB.gmap.controller(
+                    this.$map.find('.js-map-maker-map').get(0),
+                    this.map_options
+            );
 
-            if (merged_places) {
-                map_options.places = merged_places;
-            }
+            // Init new map instance
+            this.controller().init().ready(
+                    function (ctrl) {
+                        ctrl.fit_bounds();
+                        ctrl.remove_focus();
+                    }
+            );
 
-            if (index) {
-                this._object_inc = index;
-            }
-        }
+            this.controller().set_styles([{featureType: 'poi', elementType: 'all', stylers: [{visibility: 'off'}]}]);
 
-        this.$map_maker = this.element().find('.js-map-maker');
+            this.controller().remove_focus();
+        };
 
-        // Create new map instance
-        this._controller = new window.BB.gmap.controller(
-                this.element().find('.js-map-maker-map').get(0),
-                map_options
-        );
+        Map.prototype.register_map_actions = function () {
+            // Scope
+            var that = this;
 
-        // Init new map instance
-        this.controller().init().ready(
-                function (ctrl) {
-                    ctrl.fit_bounds();
-                    ctrl.remove_focus();
+            var key = 'object';
+
+
+            this.$map.on('change', '[name="' + this.data.controls_name + '"]', function (event) {
+                var type = $(event.currentTarget).val();
+
+                if (that.editing_mode !== type) {
+                    var ctrl = that.controller();
+                    if (ctrl.focused()) {
+                        ctrl.remove_focus();
+                        this.is_editing = false;
+                    }
                 }
-        );
 
-        this.controller().set_styles([{featureType: 'poi', elementType: 'all', stylers: [{visibility: 'off'}]}]);
+                that.editing_mode = type;
+                that.item_creation_ready();
 
-        this.controller().remove_focus();
+                switch (type) {
+                    case 'marker':
+                        that.display_marker_toolbar();
 
-        // Scope
-        var that = this;
+                        break;
+                    case 'line':
+                    case 'polygon':
+                        that.hide_marker_toolbar();
 
-        var key = 'object';
+                        break;
+                }
+            });
 
-        this.element().on('change', '[name="' + this.data.controls_name + '"]', function (event) {
-            var type = $(event.currentTarget).val();
-            switch (type) {
-                case 'display_marker_toolbar':
-                    that.display_marker_toolbar();
+            this.$map.on('click', '.js-add_place_by_address', function (e) {
+                e.preventDefault();
 
-                    break;
-                case 'add_line':
-                case 'add_polygon':
-                    that.hide_marker_toolbar();
+                var value = that.element().find('.js-address').text();
+                if (!value) {
+                    // No value specified, no need to go further
+                    return false;
+                }
+
+                that.controller().add_place_by_address('object' + that.object_index(), value, {
+                    type           : 'marker',
+                    draggable      : true,
+                    editable       : true,
+                    // After loading the marker object
+                    loaded_callback: function (marker) {
+                        that.controller().map().setCenter(marker.object().getPosition());
+                    }
+                });
+            });
+
+            this.$map.on('click', '.js-reset', function (e) {
+                e.preventDefault();
+                that.controller().reset();
+            });
+
+            // Hook into the map_click handler.
+            var ctrlClick = this.controller().map_click;
+            this.controller().map_click = function (e) {
+                if (!that.is_editing && that.editing_mode !== null) {
+                    that.is_editing = true;
 
                     var object_id = key + that.object_index();
 
@@ -181,122 +223,185 @@
                         object_id = key + that.object_index();
                     }
 
-                    that.controller().create_new(type.replace('add_', ''), object_id);
+                    var type = that.editing_mode;
 
-                    break;
-            }
-        });
+                    that.controller().create_new(type, object_id);
+                }
 
-        this.element().on('click', '.js-add-marker', function (e) {
-            e.preventDefault();
+                var out = ctrlClick.call(this,e);
 
-            // Find uniq item ident
-            var object_id = key + that.object_index();
-            while (that.controller().get_place(object_id)) {
-                object_id = key + that.object_index();
-            }
+                if (type === 'marker') {
+                    that.controller().remove_focus();
+                    that.is_editing = false;
+                }
 
-            // Start creation of a new object
-            that.controller().create_new('marker', object_id);
-        });
+                return out;
+            };
 
-        this.element().on('click', '.js-add_place_by_address', function (e) {
-            e.preventDefault();
-
-            var value = that.element().find('.js-address').text();
-            if (!value) {
-                // No value specified, no need to go further
-                return false;
-            }
-
-            that.controller().add_place_by_address('object' + that.object_index(), value, {
-                type           : 'marker',
-                draggable      : true,
-                editable       : true,
-                // After loading the marker object
-                loaded_callback: function (marker) {
-                    that.controller().map().setCenter(marker.object().getPosition());
+            this.$map.on('click', '.js-item_confirm', function (e) {
+                var ctrl = that.controller();
+                if (ctrl.focused()) {
+                    ctrl.remove_focus();
+                    that.is_editing = false;
                 }
             });
-        });
 
-        this.element().on('click', '.js-reset', function (e) {
-            e.preventDefault();
-            that.controller().reset();
-        });
-    };
-
-    /**
-     * Return {BB.gmap.controller}
-     */
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.controller = function () {
-        return this._controller;
-    };
-
-    /**
-     * This is to prevent any ident duplication
-     * Return {Int} Object index
-     */
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.object_index = function () {
-        return ++this._object_inc;
-    };
-
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.display_marker_toolbar = function () {
-        this.$map_maker.addClass('is-header-open');
-    };
-
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.hide_marker_toolbar = function () {
-        this.$map_maker.removeClass('is-header-open');
-    };
-
-    /**
-     * I believe this should fit the PHP model
-     * Added the save() function to be called on form submit
-     * Could be inherited from a global Charcoal.Admin.Property Prototype
-     * Extra ideas:
-     * - save
-     * - validate
-     * @return this (chainable)
-     */
-
-    Charcoal.Admin.Property_Input_Map_Widget.prototype.save = function () {
-        // Get raw map datas
-        var raw = this.controller().export();
-
-        // We might wanna save ONLY the places values
-        var places = (typeof raw.places === 'object') ? raw.places : {};
-
-        // Cleanup for database.
-        var cleaned_places = {
-            points   : [],
-            polylines: [],
-            polygons : []
+            this.$map.on('click', '.js-item_delete', function (e) {
+                var ctrl = that.controller();
+                if (ctrl.focused()) {
+                    // Remove focused item
+                    if (ctrl.focused().data('editable')) {
+                        ctrl.focused().delete();
+                        ctrl.remove_focus();
+                        that.is_editing = false;
+                    }
+                }
+            });
         };
 
-        $.each(places, (index, place) => {
-            switch (place.type) {
-                case 'marker':
-                    console.log(place);
-                    if (place.coords.length)
-                        cleaned_places['points'].push(place.coords);
-                    break;
-                case 'line':
-                    if (place.paths.length)
-                        cleaned_places['polylines'].push(place.paths);
-                    break;
-                case 'polygon':
-                    if (place.paths.length)
-                        cleaned_places['polygons'].push(place.paths);
-                    break;
+        Map.prototype.on_item_focus = function (item) {
+            if (item.data().editable) {
+                this.display_item_toolbar();
+                this.$editing_label.html(item.data().type);
+                this.is_editing = true;
             }
-        });
+        };
 
-        // Affect to the current property's input
-        // I see no reason to have more than one input hidden here.
-        // Split with classes or data if needed
-        this.element().find('input[type=hidden]').val(JSON.stringify(cleaned_places));
+        Map.prototype.on_item_blur = function (item) {
+            this.hide_item_toolbar();
+            this.is_editing = false;
+        };
 
-        return this;
-    };
+        /**
+         * Return {BB.gmap.controller}
+         */
+        Map.prototype.controller = function () {
+            return this._controller;
+        };
 
+        /**
+         * This is to prevent any ident duplication
+         * Return {Int} Object index
+         */
+        Map.prototype.object_index = function () {
+            return ++this._object_inc;
+        };
+
+        Map.prototype.display_marker_toolbar = function () {
+            this.$map_maker.addClass('is-header-open');
+        };
+
+        Map.prototype.hide_marker_toolbar = function () {
+            this.$map_maker.removeClass('is-header-open');
+        };
+
+        Map.prototype.display_item_toolbar = function () {
+            this.$editing_label.html(this.editing_mode);
+            this.$map_maker.addClass('is-item-tool-open');
+        };
+
+        Map.prototype.hide_item_toolbar = function () {
+            this.$map_maker.removeClass('is-item-tool-open');
+        };
+
+        Map.prototype.item_creation_ready = function () {
+            this.$map_maker.addClass('is-item-creation-ready');
+        };
+
+        Map.prototype.load_places = function () {
+            // Get current map state from DB
+            // This is located in the hidden input
+            var current_value = this.$map_input.val();
+            var default_place_opts = this.default_place_opts;
+
+            if (current_value) {
+                // Parse the value
+                var places = JSON.parse(current_value);
+
+                // Merge places with default styles
+                var merged_places = [];
+                var index = 0;
+
+                $.each(places.points, function (index, coords) {
+                    merged_places.push($.extend({
+                        type  : 'marker',
+                        coords: coords
+                    }, default_place_opts));
+                });
+
+                $.each(places.polylines, function (index, paths) {
+                    merged_places.push($.extend({
+                        type : 'line',
+                        paths: paths
+                    }, default_place_opts));
+                });
+
+                $.each(places.polygons, function (index, paths) {
+                    merged_places.push($.extend({
+                        type : 'polygon',
+                        paths: paths
+                    }, default_place_opts));
+                });
+
+                if (merged_places) {
+                    this.map_options.places = merged_places;
+                }
+
+                if (index) {
+                    this._object_inc = index;
+                }
+            }
+        };
+
+        /**
+         * I believe this should fit the PHP model
+         * Added the save() function to be called on form submit
+         * Could be inherited from a global Charcoal.Admin.Property Prototype
+         * Extra ideas:
+         * - save
+         * - validate
+         * @return this (chainable)
+         */
+        Map.prototype.save = function () {
+            // Get raw map datas
+            var raw = this.controller().export();
+
+            // We might wanna save ONLY the places values
+            var places = (typeof raw.places === 'object') ? raw.places : {};
+
+            // Cleanup for database.
+            var cleaned_places = {
+                points   : [],
+                polylines: [],
+                polygons : []
+            };
+
+            $.each(places, (index, place) => {
+                switch (place.type) {
+                    case 'marker':
+                        if (place.coords.length)
+                            cleaned_places['points'].push(place.coords);
+                        break;
+                    case 'line':
+                        if (place.paths.length)
+                            cleaned_places['polylines'].push(place.paths);
+                        break;
+                    case 'polygon':
+                        if (place.paths.length)
+                            cleaned_places['polygons'].push(place.paths);
+                        break;
+                }
+            });
+
+            // Affect to the current property's input
+            // I see no reason to have more than one input hidden here.
+            // Split with classes or data if needed
+            this.$map.find('input[type=hidden]').val(JSON.stringify(cleaned_places));
+
+            return this;
+        };
+
+        Charcoal.Admin.Property_Input_Map_Widget = Map;
+
+    }(jQuery, document));
 </script>

@@ -15,6 +15,10 @@ use Charcoal\Admin\Property\AbstractPropertyInput;
  */
 class MapWidgetInput extends AbstractPropertyInput
 {
+    const POINT = 'point';
+    const POLYLINE = 'polyline';
+    const POLYGON = 'polygon';
+
     /**
      * The API key for the mapping service.
      *
@@ -28,6 +32,15 @@ class MapWidgetInput extends AbstractPropertyInput
      * @var array
      */
     private $mapOptions;
+
+    /**
+     * @var array
+     */
+    private $geolocationTypes = [
+        self::POINT,
+        self::POLYLINE,
+        self::POLYGON
+    ];
 
     /**
      * Sets the API key for the mapping service.
@@ -58,7 +71,7 @@ class MapWidgetInput extends AbstractPropertyInput
      * This method always merges default settings.
      *
      * @param  array $settings The map widget options.
-     * @return MapWidgetInput Chainable
+     * @return self
      */
     public function setMapOptions(array $settings)
     {
@@ -79,7 +92,7 @@ class MapWidgetInput extends AbstractPropertyInput
      * Merge (replacing or adding) map widget options.
      *
      * @param  array $settings The map widget options.
-     * @return MapWidgetInput Chainable
+     * @return self
      */
     public function mergeMapOptions(array $settings)
     {
@@ -98,7 +111,7 @@ class MapWidgetInput extends AbstractPropertyInput
      * @param  string $key The setting to add/replace.
      * @param  mixed  $val The setting's value to apply.
      * @throws InvalidArgumentException If the identifier is not a string.
-     * @return MapWidgetInput Chainable
+     * @return self
      */
     public function addMapOption($key, $val)
     {
@@ -132,6 +145,7 @@ class MapWidgetInput extends AbstractPropertyInput
         if ($this->mapOptions === null) {
             $this->mapOptions = $this->defaultMapOptions();
         }
+
         return $this->mapOptions;
     }
 
@@ -142,7 +156,7 @@ class MapWidgetInput extends AbstractPropertyInput
      */
     public function defaultMapOptions()
     {
-        return [ 'api_key' => $this->apiKey() ];
+        return ['api_key' => $this->apiKey()];
     }
 
     /**
@@ -153,6 +167,84 @@ class MapWidgetInput extends AbstractPropertyInput
     public function mapOptionsAsJson()
     {
         return json_encode($this->mapOptions());
+    }
+
+    /**
+     * @return array
+     */
+    private function allowedGeolocationTypes()
+    {
+        return [
+            self::POINT,
+            self::POLYLINE,
+            self::POLYGON
+        ];
+    }
+
+    /**
+     * @return mixed
+     */
+    public function geolocationTypes()
+    {
+        return $this->geolocationTypes;
+    }
+
+    /**
+     * @param mixed $type Geolocation type.
+     * @throws InvalidArgumentException If type is not supported.
+     * @return self
+     */
+    public function setGeolocationTypes($type)
+    {
+        if (is_array($type)) {
+            array_walk($type, function ($value) {
+                if (!in_array($value, $this->allowedGeolocationTypes())) {
+                    throw new InvalidArgumentException(sprintf(
+                        'Invalid Geolocation type provided for property [%s], received [%s]',
+                        $this->inputName(),
+                        $value
+                    ));
+                }
+            });
+
+            $this->geolocationTypes = $type;
+        }
+
+        if (is_string($type)) {
+            if (!in_array($type, $this->allowedGeolocationTypes())) {
+                throw new InvalidArgumentException(sprintf(
+                    'Invalid Geolocation type provided for property [%s], received [%s]',
+                    $this->inputName(),
+                    $type
+                ));
+            }
+
+            $this->geolocationTypes = [$type];
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function mapTools()
+    {
+        $types = array_values($this->geolocationTypes());
+
+        return [
+            self::POINT => in_array(self::POINT, $types),
+            self::POLYLINE => in_array(self::POLYLINE, $types),
+            self::POLYGON => in_array(self::POLYGON, $types)
+        ];
+    }
+
+    /**
+     * @return boolean
+     */
+    public function showMapTools()
+    {
+        return true;
     }
 
     /**
