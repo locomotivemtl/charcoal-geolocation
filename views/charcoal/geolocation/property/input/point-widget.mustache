@@ -1,0 +1,36 @@
+{{!--
+    Map Widget Control
+    ==================
+
+    `charcoal/admin/property/input/map-widget`
+
+    The map input widget will allow the user to access data that come from a google map
+    There are difference possible action such as:
+    - Create new marker
+    - Create new line
+    - Create new polygon
+    - Create new area (radius) not yet active
+    - Add marker by address
+    - Center map by address
+
+--}}
+
+<div class="o-toolbox" id="{{ inputId }}">
+    {{> charcoal/geolocation/property/input/toolbox-actions }}
+    <input type="hidden" name="{{ inputName }}" value="{{ inputVal }}">
+</div>
+
+{{# addJs }}
+    {{> charcoal/geolocation/property/input/script/point-widget }}
+    <script>
+        var inputOptions = {
+            id:            '{{ inputId }}',
+            type:          'charcoal/geolocation/property/input/point-widget',
+            data:          {{& mapOptionsAsJson }},
+            controls_name: 'map_toolbox_{{ inputId }}',
+            mode:          'marker'
+        };
+
+        Charcoal.Admin.manager().add_property_input(inputOptions);
+    </script>
+{{/ addJs }}

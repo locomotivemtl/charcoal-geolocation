@@ -1,0 +1,111 @@
+{{> charcoal/geolocation/property/input/script/map-widget }}
+
+<script>
+
+(function () {
+
+    // extends map widget
+    var Map = Charcoal.Admin.Property_Input_Map_Widget;
+
+    /***
+     * `charcoal/admin/property/input/point-widget`
+     * Property_Input_Point_Widget Javascript class
+     *
+     */
+    var Point = function (data) {
+        // Input type
+        data.input_type = 'charcoal/geolocation/property/input/point-widget';
+        Charcoal.Admin.Property.call(this, data);
+
+        this.set_properties(data).init();
+    };
+
+    Point.prototype = Object.create(Map.prototype);
+    Point.prototype.constructor = Charcoal.Admin.Property_Input_Point_Widget;
+    Point.prototype.parent = Map.prototype;
+
+    Point.prototype.set_properties = function (data) {
+        this.parent.set_properties.call(this, data);
+
+        return this;
+    };
+
+    Point.prototype.init_map = function () {
+        this.parent.init_map.call(this);
+
+        this.display_marker_toolbar();
+        this.item_creation_ready();
+    };
+
+    Point.prototype.load_places = function () {
+        // Get current map state from DB
+        // This is located in the hidden input
+        var current_value = this.$map_input.val();
+        var default_place_opts = this.default_place_opts;
+
+        if (current_value) {
+            // Parse the value
+            var places = JSON.parse(current_value);
+
+            // Merge places with default styles
+            var merged_places = [];
+            var index = 0;
+
+            $.each(places, function (index, coords) {
+                merged_places.push($.extend({
+                    type  : 'marker',
+                    coords: coords
+                }, default_place_opts));
+            });
+
+            if (merged_places) {
+                this.map_options.places = merged_places;
+            }
+
+            if (index) {
+                this._object_inc = index;
+            }
+        }
+    };
+
+    /**
+     * I believe this should fit the PHP model
+     * Added the save() function to be called on form submit
+     * Could be inherited from a global Charcoal.Admin.Property Prototype
+     * Extra ideas:
+     * - save
+     * - validate
+     * @return this (chainable)
+     */
+    Point.prototype.save = function () {
+        // Get raw map datas
+        var raw = this.controller().export();
+
+        // We might wanna save ONLY the places values
+        var places = (typeof raw.places === 'object') ? raw.places : {};
+
+        // Cleanup for database.
+        var cleaned_places = [];
+
+        $.each(places, (index, place) => {
+            switch (place.type) {
+                case 'marker':
+                    if (place.coords.length)
+                        cleaned_places.push(place.coords);
+                    break;
+            }
+        });
+
+        // Affect to the current property's input
+        // I see no reason to have more than one input hidden here.
+        // Split with classes or data if needed
+        this.element().find('input[type=hidden]').val(JSON.stringify(cleaned_places));
+
+        return this;
+    };
+
+    Charcoal.Admin.Property_Input_Point_Widget = Point;
+
+}(jQuery, document));
+
+</script>
