@@ -233,9 +233,9 @@ class MapWidgetInput extends AbstractPropertyInput
         $types = array_values($this->geolocationTypes());
 
         return [
-            self::POINT => in_array(self::POINT, $types),
+            self::POINT    => in_array(self::POINT, $types),
             self::POLYLINE => in_array(self::POLYLINE, $types),
-            self::POLYGON => in_array(self::POLYGON, $types)
+            self::POLYGON  => in_array(self::POLYGON, $types)
         ];
     }
 
@@ -245,6 +245,57 @@ class MapWidgetInput extends AbstractPropertyInput
     public function showMapTools()
     {
         return true;
+    }
+
+    /**
+     * Retrieve the input name.
+     *
+     * The input name should always be the property's ident.
+     *
+     * @return string
+     */
+    public function inputName()
+    {
+        if ($this->inputName) {
+            $name = $this->inputName;
+        } else {
+            $name = $this->propertyIdent();
+        }
+
+        if ($this->p()->l10n()) {
+            $name .= '['.$this->lang().']';
+        }
+
+        return $name;
+    }
+
+    /**
+     * Retrieve the control's data options for JavaScript components.
+     *
+     * @return array
+     */
+    public function controlDataForJs()
+    {
+        $data = [
+            'map_options'        => $this->mapOptions(),
+            'input_type'         => $this->inputType(),
+
+            // Selectize Control
+            'translations'       => [
+                'point'    => $this->translator()->translate('point'),
+                'polyline' => $this->translator()->translate('polyline'),
+                'polygon'  => $this->translator()->translate('polygon'),
+            ],
+
+            // Base Property
+            'required'           => $this->required(),
+            'l10n'               => $this->property()->l10n(),
+            'multiple'           => $this->multiple(),
+            'multiple_separator' => $this->property()->multipleSeparator(),
+            'multiple_options'   => $this->property()->multipleOptions(),
+        ];
+
+        return $data;
     }
 
     /**

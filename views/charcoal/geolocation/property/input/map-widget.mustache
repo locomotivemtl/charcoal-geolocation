@@ -24,9 +24,9 @@
     {{> charcoal/geolocation/property/input/script/map-widget }}
     <script>
         var inputOptions = {
-            id:            '{{ inputId }}',
-            type:          'charcoal/geolocation/property/input/map-widget',
-            data:          {{& mapOptionsAsJson }},
+            id           : '{{ inputId }}',
+            type         : 'charcoal/geolocation/property/input/map-widget',
+            data         : {{& controlDataForJsAsJson }},
             controls_name: 'map_toolbox_{{ inputId }}'
         };
 
