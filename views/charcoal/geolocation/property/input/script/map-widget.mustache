@@ -28,13 +28,14 @@
 
             // references
             this.$map = this.element();
-            this.$map_input = this.$map.find('input[type=hidden]');
+            this.$map_input = this.$map.find('.js-input');
             this.$map_maker = this.$map.find('.js-map-maker');
             this.$editing_label = this.$map.find('.js-editing-mode-label');
 
             this._map_options = data.data.map_options;
             this._editing_mode = data.mode || null;
             this._multiple = data.data.multiple || null;
+            this._map_input_model = this.$map_input.get(0);
 
             return this;
         };
@@ -107,6 +108,7 @@
             this.default_map_options = {
                 default_styles: this.default_styles,
                 use_clusterer : false,
+                max_fitbounds_zoom : 15,
                 map           : {
                     center    : {
                         x: 45.3712923,

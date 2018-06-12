@@ -248,28 +248,6 @@ class MapWidgetInput extends AbstractPropertyInput
     }
 
     /**
-     * Retrieve the input name.
-     *
-     * The input name should always be the property's ident.
-     *
-     * @return string
-     */
-    public function inputName()
-    {
-        if ($this->inputName) {
-            $name = $this->inputName;
-        } else {
-            $name = $this->propertyIdent();
-        }
-
-        if ($this->p()->l10n()) {
-            $name .= '['.$this->lang().']';
-        }
-
-        return $name;
-    }
-
-    /**
      * Retrieve the control's data options for JavaScript components.
      *
      * @return array

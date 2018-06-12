@@ -50,12 +50,20 @@
             var merged_places = [];
             var index = 0;
 
-            $.each(places, function (index, coords) {
+            if (this._multiple) {
+                $.each(places, function (index, coords) {
+                    merged_places.push($.extend({
+                        type  : 'marker',
+                        coords: coords
+                    }, default_place_opts));
+                });
+            } else {
                 merged_places.push($.extend({
                     type  : 'marker',
-                    coords: coords
+                    coords: places
                 }, default_place_opts));
-            });
+            }
+
 
             if (merged_places) {
                 this._map_options.places = merged_places;
@@ -86,19 +94,26 @@
         // Cleanup for database.
         var cleaned_places = [];
 
-        $.each(places, (index, place) => {
-            switch (place.type) {
-                case 'marker':
-                    if (place.coords.length)
-                        cleaned_places.push(place.coords);
-                    break;
-            }
-        });
+        if ($.isEmptyObject(places)) {
+            this.$map_input.val('');
+        } else {
+            // delete input;
+            this.$map_input.remove();
+
+            $.each(places, (index, place) => {
+                if (place.type === 'marker') {
+                    if (place.coords.length) {
+                        var input = $(this._map_input_model).val(JSON.stringify(place.coords));
+                        this.$map.append(input.clone());
+                    }
+                }
+            });
+        }
 
         // Affect to the current property's input
         // I see no reason to have more than one input hidden here.
         // Split with classes or data if needed
-        this.element().find('input[type=hidden]').val(JSON.stringify(cleaned_places));
+        // this.$map.find('input[type=hidden]').val(cleaned_places.values());
 
         return this;
     };
