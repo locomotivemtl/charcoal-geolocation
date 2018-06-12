@@ -14,7 +14,6 @@
      */
     var Point = function (data) {
         // Input type
-        data.input_type = 'charcoal/geolocation/property/input/point-widget';
         Charcoal.Admin.Property.call(this, data);
 
         this.set_properties(data).init();
@@ -59,7 +58,7 @@
             });
 
             if (merged_places) {
-                this.map_options.places = merged_places;
+                this._map_options.places = merged_places;
             }
 
             if (index) {

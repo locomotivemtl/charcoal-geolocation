@@ -9,7 +9,7 @@
          */
         var Map = function (data) {
             // Input type
-            data.input_type = 'charcoal/geolocation/property/input/map-widget';
+            // data.input_type = 'charcoal/geolocation/property/input/map-widget';
             Charcoal.Admin.Property.call(this, data);
 
             this.set_properties(data).init();
@@ -24,14 +24,17 @@
             this._controller = undefined;
             // Create uniq ident for every entities on the map
             this._object_inc = 0;
+            this._is_editing = false;
 
+            // references
             this.$map = this.element();
             this.$map_input = this.$map.find('input[type=hidden]');
             this.$map_maker = this.$map.find('.js-map-maker');
-
-            this.editing_mode = data.mode || null;
-            this.is_editing = false;
             this.$editing_label = this.$map.find('.js-editing-mode-label');
+
+            this._map_options = data.data.map_options;
+            this._editing_mode = data.mode || null;
+            this._multiple = data.data.multiple || null;
 
             return this;
         };
@@ -43,7 +46,7 @@
             if (typeof google === 'undefined') {
                 $.getScript(
                         'https://maps.googleapis.com/maps/api/js?sensor=false' +
-                        '&callback=_tmp_google_onload_function&key=' + this.data.data.api_key,
+                        '&callback=_tmp_google_onload_function&key=' + this._map_options.api_key,
                         function () {
                         }
                 );
@@ -128,7 +131,7 @@
                 draggable: true
             };
 
-            this.map_options = $.extend(true, this.default_map_options, this.data.data);
+            this._map_options = $.extend(true, this.default_map_options, this._map_options);
         };
 
         Map.prototype.init_map = function () {
@@ -136,7 +139,7 @@
             // Create new map instance
             this._controller = new window.BB.gmap.controller(
                     this.$map.find('.js-map-maker-map').get(0),
-                    this.map_options
+                    this._map_options
             );
 
             // Init new map instance
@@ -158,19 +161,18 @@
 
             var key = 'object';
 
-
             this.$map.on('change', '[name="' + this.data.controls_name + '"]', function (event) {
                 var type = $(event.currentTarget).val();
 
-                if (that.editing_mode !== type) {
+                if (that._editing_mode !== type) {
                     var ctrl = that.controller();
                     if (ctrl.focused()) {
                         ctrl.remove_focus();
-                        this.is_editing = false;
+                        this._is_editing = false;
                     }
                 }
 
-                that.editing_mode = type;
+                that._editing_mode = type;
                 that.item_creation_ready();
 
                 switch (type) {
@@ -214,8 +216,12 @@
             // Hook into the map_click handler.
             var ctrlClick = this.controller().map_click;
             this.controller().map_click = function (e) {
-                if (!that.is_editing && that.editing_mode !== null) {
-                    that.is_editing = true;
+                if (!that._is_editing && that._editing_mode !== null) {
+                    if (!that._multiple) {
+                        that.controller().reset();
+                    }
+
+                    that._is_editing = true;
 
                     var object_id = key + that.object_index();
 
@@ -223,7 +229,7 @@
                         object_id = key + that.object_index();
                     }
 
-                    var type = that.editing_mode;
+                    var type = that._editing_mode;
 
                     that.controller().create_new(type, object_id);
                 }
@@ -232,7 +238,7 @@
 
                 if (type === 'marker') {
                     that.controller().remove_focus();
-                    that.is_editing = false;
+                    that._is_editing = false;
                 }
 
                 return out;
@@ -242,7 +248,7 @@
                 var ctrl = that.controller();
                 if (ctrl.focused()) {
                     ctrl.remove_focus();
-                    that.is_editing = false;
+                    that._is_editing = false;
                 }
             });
 
@@ -253,7 +259,7 @@
                     if (ctrl.focused().data('editable')) {
                         ctrl.focused().delete();
                         ctrl.remove_focus();
-                        that.is_editing = false;
+                        that._is_editing = false;
                     }
                 }
             });
@@ -263,13 +269,13 @@
             if (item.data().editable) {
                 this.display_item_toolbar();
                 this.$editing_label.html(item.data().type);
-                this.is_editing = true;
+                this._is_editing = true;
             }
         };
 
         Map.prototype.on_item_blur = function (item) {
             this.hide_item_toolbar();
-            this.is_editing = false;
+            this._is_editing = false;
         };
 
         /**
@@ -296,7 +302,7 @@
         };
 
         Map.prototype.display_item_toolbar = function () {
-            this.$editing_label.html(this.editing_mode);
+            this.$editing_label.html(this._editing_mode);
             this.$map_maker.addClass('is-item-tool-open');
         };
 
@@ -344,7 +350,7 @@
                 });
 
                 if (merged_places) {
-                    this.map_options.places = merged_places;
+                    this._map_options.places = merged_places;
                 }
 
                 if (index) {
