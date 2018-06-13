@@ -94,17 +94,17 @@
         // Cleanup for database.
         var cleaned_places = [];
 
-        if ($.isEmptyObject(places)) {
-            this.$map_input.val('');
-        } else {
-            // delete input;
-            this.$map_input.remove();
+        var input = $(this._map_input_model);
+        // delete input;
+        this.$map.find('.js-input').remove();
 
+        if ($.isEmptyObject(places)) {
+            this.$map.append(input.clone().val(''));
+        } else {
             $.each(places, (index, place) => {
                 if (place.type === 'marker') {
                     if (place.coords.length) {
-                        var input = $(this._map_input_model).val(JSON.stringify(place.coords));
-                        this.$map.append(input.clone());
+                        this.$map.append(input.clone().val(JSON.stringify(place.coords)));
                     }
                 }
             });
