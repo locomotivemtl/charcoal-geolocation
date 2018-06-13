@@ -2,13 +2,10 @@
 
 namespace Charcoal\Geolocation\Property;
 
-// From 'charcoal-property'
-use Charcoal\Property\StructureProperty;
-
 /**
  * MapStructure Property
  */
-class PointProperty extends StructureProperty
+class PointProperty extends AbstractGeolocationProperty
 {
     /**
      * Retrieve the property's type identifier.
@@ -17,6 +14,16 @@ class PointProperty extends StructureProperty
      */
     public function type()
     {
-        return 'charcoal/geolocation/property/point-property';
+        return 'point-property';
+    }
+
+    /**
+     * Retrieve the property geolocation format.
+     *
+     * @return string
+     */
+    public function geolocationType()
+    {
+        return 'point';
     }
 }
