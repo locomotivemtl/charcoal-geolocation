@@ -1,0 +1,30 @@
+{{!--
+Geoloaction Collection Widget
+=====================
+--}}
+
+<div class="card mt-4">
+    <div id="{{ widget_id }}" style="width:100%;height:50em;"></div>
+</div>
+
+<div style="display:none;">
+    {{# geolocationObjects }}
+        <div id="{{ widget_id }}_infowindow_{{ id }}">
+            {{> $widget_template }}
+        </div>
+    {{/ geolocationObjects }}
+</div>
+
+{{# addJs }}
+    {{> charcoal/geolocation/widget/script/geolocation-collection-script }}
+
+    <script>
+        var widgetOptions = {
+            id         : '{{ widgetId }}',
+            type       : '{{ type }}',
+            data       : {{& widgetDataForJsAsJson }}
+        };
+
+        Charcoal.Admin.manager().add_widget(widgetOptions);
+    </script>
+{{/ addJs }}

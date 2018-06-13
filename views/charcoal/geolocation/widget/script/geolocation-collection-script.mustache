@@ -1,0 +1,163 @@
+<script>
+    (function () {
+        /***
+         * `charcoal/geolocation/widget/geolocation-collection`
+         */
+        var Geolocation = function (data) {
+            Charcoal.Admin.Widget.call(this, data);
+
+            this.set_properties(data).init_widget();
+        };
+
+        Geolocation.prototype = Object.create(Charcoal.Admin.Widget.prototype);
+        Geolocation.prototype.constructor = Charcoal.Admin.Widget_Geolocation_Collection;
+        Geolocation.prototype.parent = Charcoal.Admin.Widget.prototype;
+
+        Geolocation.prototype.set_properties = function (data) {
+            // Controller
+            this._controller = undefined;
+            this._map_options = data.data.map_options;
+            this._places = data.data.places;
+            this.data = data;
+
+            return this;
+        };
+
+        Geolocation.prototype.init_widget = function () {
+            // Scope
+            var that = this;
+
+            if (typeof google === 'undefined') {
+                $.getScript(
+                        'https://maps.googleapis.com/maps/api/js?sensor=false' +
+                        '&callback=_tmp_google_onload_function&key=' + this._map_options.api_key,
+                        function () {
+                        }
+                );
+
+                // If google is undefined,
+                if (typeof window._tmp_google_onload_function !== 'undefined') {
+                    delete window._tmp_google_onload_function;
+                }
+
+                window._tmp_google_onload_function = function () {
+                    that.init_widget();
+                };
+
+                return;
+            }
+
+            if (typeof window._tmp_google_onload_function !== 'undefined') {
+                delete window._tmp_google_onload_function;
+            }
+
+            this.init_configs();
+
+            this.load_places();
+
+            this.init_map();
+        };
+
+        Geolocation.prototype.init_configs = function () {
+            var that = this;
+
+            this.default_styles = {
+                strokeColor  : '#000000',
+                strokeOpacity: 0.8,
+                strokeWeight : 5,
+                fillColor    : '#ffffff',
+                fillOpacity  : 0.35,
+                hover        : {
+                    strokeColor  : '#6092f5',
+                    strokeOpacity: 1,
+                    fillColor    : '#ffffff',
+                    fillOpacity  : 0.5
+                },
+                focused      : {
+                    fillOpacity: 0.8,
+                    strokeColor: '#6092f5',
+                    fillColor  : '#6092f5'
+                }
+            };
+
+            this.default_map_options = {
+                default_styles    : this.default_styles,
+                use_clusterer     : true,
+                max_fitbounds_zoom: 15,
+                map               : {
+                    center    : {
+                        x: 45.3712923,
+                        y: -73.9820994
+                    },
+                    zoom      : 14,
+                    mapType   : 'roadmap',
+                    coordsType: 'inpage', // array, json? (vs ul li)
+                    map_mode  : 'default'
+                }
+            };
+
+            this.default_place_opts = {
+                style    : this.default_styles,
+                editable : false,
+                draggable: false
+            };
+
+            this._map_options = $.extend(true, this.default_map_options, this._map_options);
+        };
+
+        Geolocation.prototype.init_map = function () {
+            // Create new map instance
+            this._controller = new window.BB.gmap.controller(
+                    document.getElementById('{{widget_id}}'),
+                    this._map_options
+            );
+
+            // Init new map instance
+            this.controller().init().ready(
+                    function (ctrl) {
+                        ctrl.fit_bounds();
+                        ctrl.remove_focus();
+                    }
+            );
+        };
+
+        Geolocation.prototype.load_places = function () {
+            var that = this;
+
+            if (this._places) {
+                var merged_places = [];
+                var default_place_opts = this.default_place_opts;
+
+                $.each(this._places, function (index, place) {
+                    merged_places.push($.extend(place, default_place_opts, {
+                        onclick: function(){
+                            BootstrapDialog.show({
+                                nl2br: false,
+                                message: $(`#${that.data.id}_infowindow_${place.id}`).html(),
+                                buttons: [{
+                                    label: '{{# _t }}Modify{{/ _t }}',
+                                    action: function(dialog) {
+                                        window.location.href = place.edit_url
+                                    }
+                                }]
+                            });
+                        }
+                    }));
+                });
+            }
+
+            if (merged_places) {
+                this._map_options.places = merged_places;
+            }
+        };
+
+        /**
+         * Return {BB.gmap.controller}
+         */
+        Geolocation.prototype.controller = function () {
+            return this._controller;
+        };
+
+        Charcoal.Admin.Widget_Geolocation_Collection = Geolocation;
+    }(jQuery, document));
+</script>
