@@ -41,15 +41,13 @@ $ composer require locomotivemtl/charcoal-geolocation
 
 ### Dependencies
 
+-   [charcoal-core](https://github.com/locomotivemtl/charcoal-core) 
+-   [charcoal-admin](https://github.com/locomotivemtl/charcoal-admin)
+
+
 #### Required
 
 -   [**PHP 5.6+**](https://php.net): _PHP 7_ is recommended.
-
-
-
-#### PSR
-
---TBD--
 
 
 
@@ -69,15 +67,95 @@ $ composer require locomotivemtl/charcoal-geolocation
 
 ## Configuration
 
---TBD--
+Add the _views_ and the _metadata_ paths to the config file.
 
+```json
+"metadata": {
+       "paths": [
+           "...",
+           "vendor/locomotivemtl/charcoal-geolocation/metadata/"
+       ]
+   },
+   "view": {
+       "paths": [
+           "...",
+           "vendor/locomotivemtl/charcoal-geolocation/views/"
+       ]
+   }
+```
 
 
 ## Usage
 
---TBD--
+The module is basically a collection of properties, inputs and widgets.
+All you have to do is use them.
+
+-   GeolocationCollection widget implementation example for an object's dashboard :
+    
+```json
+"map": {
+    "type": "charcoal/geolocation/widget/geolocation-collection",
+    "geometry_property": "geometry",
+    "infobox_template": "project/widget/example-infobox",
+    "priority": 10
+}
+```
+
+To use the properties provided by this Module, you have to refer to them with their full PHP path from the object metadata : 
+`Charcoal\\Geolocation\\Property\\MapStructureProperty`
+`Charcoal\\Geolocation\\Property\\PointProperty`
+`Charcoal\\Geolocation\\Property\\PolylineProperty`
+`Charcoal\\Geolocation\\Property\\PolygonProperty`
 
 
+
+## Widgets
+
+The following base widgets are available to build the various _admin_ templates:
+
+-   `GeolocationCollection`
+    -   Widget That can show a collection of object that has a property that implements _GeolocationInterface_
+    -   Specify the property ident to use
+    -   Specify a template to show the 
+    
+## Property Inputs
+
+The following property inputs are available to build forms in the _admin_ module:
+
+-	`MapStructure`
+	-	A specialized widget to add and edit `geolocation data` on a map.
+	    -   Supported geolocation types:
+	        -   Point
+	        -   Polyline
+	        -   Polygon
+    -   Cannot be _multiple_
+    -	Requires google-map.
+    -   Requires [gmap](http://beneroch.com/gmap).
+    -   Extends StructureProperty from [charcoal-property][charcoal-property].
+    -   Implements __GeolocationInterface__.
+
+-   `AbstractGeolocation`
+    -   Base property for: 
+        -   `Point`
+        -   `Polyline`
+        -   `Polygon`
+    -   Extends AbstractProperty from [charcoal-property][charcoal-property].
+    -   Implements __GeolocationInterface__.
+
+-	`Point`
+    -	A specialized widget to add and edit `Point` geolocation data on a map.
+    -	Requires google-map.
+    -   Requires [gmap](http://beneroch.com/gmap).
+        
+-	`Polyline`
+    -	A specialized widget to add and edit `Polyline` geolocation data on a map.
+    -	Requires google-map.
+    -   Requires [gmap](http://beneroch.com/gmap).
+
+-	`Polygon`
+    -	A specialized widget to add and edit `Polygon` geolocation data on a map.
+    -	Requires google-map.
+    -   Requires [gmap](http://beneroch.com/gmap).
 
 ## Development
 
@@ -129,8 +207,7 @@ The charcoal-geolocation module follows the Charcoal coding-style:
 ## Credits
 
 -   [Locomotive](https://locomotive.ca/)
-
-
+-	Joel Alphonso <joel@locomotive.ca>
 
 ## License
 
@@ -139,7 +216,8 @@ Charcoal is licensed under the MIT license. See [LICENSE](LICENSE) for details.
 
 
 [charcoal-geolocation]:  https://packagist.org/packages/locomotivemtl/charcoal-geolocation
-[charcoal-app]:             https://packagist.org/packages/locomotivemtl/charcoal-app
+[charcoal-property]:     https://packagist.org/packages/locomotivemtl/charcoal-property
+[charcoal-app]:          https://packagist.org/packages/locomotivemtl/charcoal-app
 
 [dev-scrutinizer]:    https://scrutinizer-ci.com/g/locomotivemtl/charcoal-geolocation/
 [dev-coveralls]:      https://coveralls.io/r/locomotivemtl/charcoal-geolocation
