@@ -13,7 +13,7 @@ use Charcoal\Property\PropertyInterface;
 use Charcoal\Model\ModelInterface;
 
 // local dependencies
-use Charcoal\Geolocation\Property\AbstractGeolocationProperty;
+use Charcoal\Geolocation\Property\GeolocationInterface;
 
 // from 'pimple'
 use Pimple\Container;
@@ -172,15 +172,15 @@ class GeolocationCollectionWidget extends AdminWidget implements
 
         $this->geometryPropertyObject = $this->proto()->property($this->geometryProperty());
 
-        if (!$this->geometryPropertyObject instanceof AbstractGeolocationProperty) {
+        if (!$this->geometryPropertyObject instanceof GeolocationInterface) {
             throw new InvalidArgumentException(sprintf(
                 'Invalid Geometry property for %s, must be an instance of [%s]',
                 $this->geometryProperty(),
-                AbstractGeolocationProperty::class
+                GeolocationInterface::class
             ));
         }
 
-        return $this->geometryPropertyObject();
+        return $this->geometryPropertyObject;
     }
 
     /**
@@ -188,13 +188,11 @@ class GeolocationCollectionWidget extends AdminWidget implements
      */
     public function multiple()
     {
-        if (isset($this->multiple)) {
-            return $this->multiple;
+        if (!isset($this->multiple)) {
+            $this->multiple = $this->geometryPropertyObject()->multiple();
         }
 
-        $this->multiple = $this->geometryPropertyObject()->multiple();
-
-        return $this->multiple();
+        return $this->multiple;
     }
 
     /**
@@ -202,11 +200,12 @@ class GeolocationCollectionWidget extends AdminWidget implements
      */
     public function geolocationType()
     {
-        if (isset($this->geolocationType)) {
-            return $this->geolocationType;
+        if (!isset($this->geolocationType)) {
+            $this->geolocationType = $this->geometryPropertyObject()
+                                          ->geolocationType();
         }
 
-        $this->multiple = $this->geometryPropertyObject()->geolocationType();
+        return $this->geolocationType;
     }
 
     /**
@@ -238,17 +237,45 @@ class GeolocationCollectionWidget extends AdminWidget implements
             }
 
             $geolocations = [];
-
             switch ($this->geolocationType()) {
                 case 'point':
-                default:
-                    $callback = function (&$obj) use (&$geolocations) {
-                        $geolocations = $this->parsePointCollection($obj);
+                    $callback = function ($obj) use (&$geolocations) {
+                        $geolocations = array_merge(
+                            $geolocations,
+                            $this->parsePointCollection($obj)
+                        );
+                    };
+                    break;
+                case 'polyline':
+                    $callback = function ($obj) use (&$geolocations) {
+                        $geolocations = array_merge(
+                            $geolocations,
+                            $this->parsePolylineCollection($obj)
+                        );
+                    };
+                    break;
+                case 'polygon':
+                    $callback = function ($obj) use (&$geolocations) {
+                        $geolocations = array_merge(
+                            $geolocations,
+                            $this->parsePolygonCollection($obj)
+                        );
+                    };
+                    break;
+                case 'structure':
+                    $callback = function ($obj) use (&$geolocations) {
+                        $geolocations = array_merge(
+                            $geolocations,
+                            $this->parseStructureCollection($obj)
+                        );
                     };
                     break;
             }
 
-            $loader->setCallback($callback->bindTo($this));
+            if (isset($callback)) {
+                $loader->setCallback($callback->bindTo($this));
+            }
+
             $this->geolocationObject = $loader->load();
 
             $this->geolocations = $geolocations;
@@ -274,39 +301,21 @@ class GeolocationCollectionWidget extends AdminWidget implements
     }
 
     /**
-     * @return \Generator
-     */
-    public function infoboxes()
-    {
-        $geolocations         = $this->geolocations();
-        $filteredGeolocations = [];
-
-        array_walk($geolocations, function ($value) use (&$filteredGeolocations) {
-            $id = $value['id'];
-
-            if (!isset($filteredGeolocations[$id])) {
-                $filteredGeolocations[$id] = $value;
-            }
-        });
-
-        foreach ($filteredGeolocations as $geolocation) {
-            $GLOBALS['widget_template'] = $this->infoboxTemplate();
-            yield $geolocation;
-            $GLOBALS['widget_template'] = '';
-        }
-    }
-
-    /**
+     * Parse object collection as Map Point structure.
      *
      * @throws \Exception If the view instance is not previously set / injected.
      * @param ModelInterface|mixed $obj The object parsed from loader.
      * @return array
      */
-    public function parsePointCollection(&$obj)
+    public function parsePointCollection($obj)
     {
         $out   = [];
         $value = $this->getPropertyValue($obj, $this->geometryProperty());
         $value = json_decode($value);
+
+        if ($value === null) {
+            return [];
+        }
 
         if ($this->multiple()) {
             foreach ($value as $v) {
@@ -314,11 +323,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                     'type'     => 'marker',
                     'coords'   => $v,
                     'id'       => $obj->id(),
-                    'edit_url' => $this->view()->renderTemplate(
-                        '{{baseUrl}}admin/object/edit?'.
-                        '{{#main_menu}}main_menu={{.}}&{{/main_menu}}obj_type={{obj_type}}&obj_id={{id}}',
-                        $obj
-                    )
+                    'edit_url' => $this->objectEditUrl($obj)
                 ];
             }
         } else {
@@ -326,15 +331,156 @@ class GeolocationCollectionWidget extends AdminWidget implements
                 'type'     => 'marker',
                 'coords'   => $value,
                 'id'       => $obj->id(),
-                'edit_url' => $this->view()->renderTemplate(
-                    '{{baseUrl}}admin/object/edit?'.
-                    '{{#main_menu}}main_menu={{.}}&{{/main_menu}}obj_type={{obj_type}}&obj_id={{id}}',
-                    $obj
-                )
+                'edit_url' => $this->objectEditUrl($obj)
             ];
         }
 
         return $out;
+    }
+
+    /**
+     * Parse object collection as Map Polyline structure.
+     *
+     * @throws \Exception If the view instance is not previously set / injected.
+     * @param ModelInterface|mixed $obj The object parsed from loader.
+     * @return array
+     */
+    public function parsePolylineCollection($obj)
+    {
+        $out   = [];
+        $value = $this->getPropertyValue($obj, $this->geometryProperty());
+        $value = json_decode($value);
+
+        if ($value === null) {
+            return [];
+        }
+
+        if ($this->multiple()) {
+            foreach ($value as $v) {
+                $out[] = [
+                    'type'     => 'line',
+                    'paths'    => $v,
+                    'id'       => $obj->id(),
+                    'edit_url' => $this->objectEditUrl($obj)
+                ];
+            }
+        } else {
+            $out[] = [
+                'type'     => 'line',
+                'paths'    => $value,
+                'id'       => $obj->id(),
+                'edit_url' => $this->objectEditUrl($obj)
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Parse object collection as Map Polygon structure.
+     *
+     * @throws \Exception If the view instance is not previously set / injected.
+     * @param ModelInterface|mixed $obj The object parsed from loader.
+     * @return array
+     */
+    public function parsePolygonCollection($obj)
+    {
+        $out   = [];
+        $value = $this->getPropertyValue($obj, $this->geometryProperty());
+        $value = json_decode($value);
+
+        if ($value === null) {
+            return [];
+        }
+
+        if ($this->multiple()) {
+            foreach ($value as $v) {
+                $out[] = [
+                    'type'     => 'polygon',
+                    'paths'    => $v,
+                    'id'       => $obj->id(),
+                    'edit_url' => $this->objectEditUrl($obj)
+                ];
+            }
+        } else {
+            $out[] = [
+                'type'     => 'polygon',
+                'paths'    => $value,
+                'id'       => $obj->id(),
+                'edit_url' => $this->objectEditUrl($obj)
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Parse object collection as Map structure.
+     *
+     * @throws \Exception If the view instance is not previously set / injected.
+     * @param ModelInterface|mixed $obj The object parsed from loader.
+     * @return array
+     */
+    public function parseStructureCollection($obj)
+    {
+        $out   = [];
+        $value = $this->getPropertyValue($obj, $this->geometryProperty());
+        $value = json_decode($value);
+
+        if ($value === null) {
+            return [];
+        }
+
+        if (isset($value->points)) {
+            foreach ($value->points as $coords) {
+                $out[] = [
+                    'type'     => 'marker',
+                    'coords'    => $coords,
+                    'id'       => $obj->id(),
+                    'edit_url' => $this->objectEditUrl($obj)
+                ];
+            }
+        }
+
+        if (isset($value->polylines)) {
+            foreach ($value->polylines as $lines) {
+                $out[] = [
+                    'type'     => 'line',
+                    'paths'    => $lines,
+                    'id'       => $obj->id(),
+                    'edit_url' => $this->objectEditUrl($obj)
+                ];
+            }
+        }
+
+        if (isset($value->polygons)) {
+            foreach ($value->polygons as $polygons) {
+                $out[] = [
+                    'type'     => 'polygon',
+                    'paths'    => $polygons,
+                    'id'       => $obj->id(),
+                    'edit_url' => $this->objectEditUrl($obj)
+                ];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @throws \Exception If the view instance is not previously set / injected.
+     * @param ModelInterface|mixed $obj The object parsed from loader.
+     * @return string
+     */
+    public function objectEditUrl($obj)
+    {
+        return $this->view()->renderTemplate(
+            '{{baseUrl}}admin/object/edit?'.
+            '{{#main_menu}}main_menu={{.}}&{{/main_menu}}'.
+            'obj_type={{obj_type}}&'.
+            'obj_id={{id}}',
+            $obj
+        );
     }
 
     /**
@@ -531,29 +677,6 @@ class GeolocationCollectionWidget extends AdminWidget implements
 
         return parent::resolveDataSourceFilter($toResolve);
     }
-
-    // /**
-    //  * @param mixed $rawPolygon The polygon information.
-    //  * @return string
-    //  */
-    // private function formatPolygon($rawPolygon)
-    // {
-    //     if (is_string($rawPolygon)) {
-    //         $polygon = explode(' ', $rawPolygon);
-    //         $ret     = [];
-    //         foreach ($polygon as $poly) {
-    //             $coords = explode(',', $poly);
-    //             if (count($coords) < 2) {
-    //                 continue;
-    //             }
-    //             $ret[] = [(float)$coords[0], (float)$coords[1]];
-    //         }
-    //     } else {
-    //         $ret = $rawPolygon;
-    //     }
-    //
-    //     return json_encode($ret, true);
-    // }
 
     /**
      * Set the map widget's options.
