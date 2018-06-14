@@ -1,0 +1,119 @@
+{{> charcoal/geolocation/property/input/script/map-widget }}
+
+<script>
+
+    (function () {
+
+        // extends map widget
+        var Map = Charcoal.Admin.Property_Input_Map_Widget;
+
+        /***
+         * `charcoal/admin/property/input/point-widget`
+         * Property_Input_Point_Widget Javascript class
+         *
+         */
+        var Polyline = function (data) {
+            // Input type
+            Charcoal.Admin.Property.call(this, data);
+
+            this.set_properties(data).init();
+        };
+
+        Polyline.prototype = Object.create(Map.prototype);
+        Polyline.prototype.constructor = Charcoal.Admin.Property_Input_Polyline_Widget;
+        Polyline.prototype.parent = Map.prototype;
+
+        Polyline.prototype.set_properties = function (data) {
+            this.parent.set_properties.call(this, data);
+
+            return this;
+        };
+
+        Polyline.prototype.init_map = function () {
+            this.parent.init_map.call(this);
+
+            this.item_creation_ready();
+        };
+
+        Polyline.prototype.load_places = function () {
+            // Get current map state from DB
+            // This is located in the hidden input
+            var current_value = this.$map_input.val();
+            var default_place_opts = this.default_place_opts;
+
+            if (current_value) {
+                // Parse the value
+                var places = JSON.parse(current_value);
+
+                // Merge places with default styles
+                var merged_places = [];
+                var index = 0;
+
+                if (this._multiple) {
+                    $.each(places, function (index, paths) {
+                        merged_places.push($.extend({
+                            type  : 'line',
+                            paths: paths
+                        }, default_place_opts));
+                    });
+                } else {
+                    merged_places.push($.extend({
+                        type  : 'line',
+                        paths: places
+                    }, default_place_opts));
+                }
+
+
+                if (merged_places) {
+                    this._map_options.places = merged_places;
+                }
+
+                if (index) {
+                    this._object_inc = index;
+                }
+            }
+        };
+
+        /**
+         * I believe this should fit the PHP model
+         * Added the save() function to be called on form submit
+         * Could be inherited from a global Charcoal.Admin.Property Prototype
+         * Extra ideas:
+         * - save
+         * - validate
+         * @return this (chainable)
+         */
+        Polyline.prototype.save = function () {
+            // Get raw map datas
+            var raw = this.controller().export();
+
+            // We might wanna save ONLY the places values
+            var places = (typeof raw.places === 'object') ? raw.places : {};
+
+            // Cleanup for database.
+            var cleaned_places = [];
+
+            var input = $(this._map_input_model);
+            // delete input;
+            this.$map.find('.js-input').remove();
+
+            if ($.isEmptyObject(places)) {
+                this.$map.append(input.clone().val(''));
+            } else {
+                $.each(places, (index, place) => {
+                    if (place.type === 'line') {
+                        if (place.paths.length) {
+                            this.$map.append(input.clone().val(JSON.stringify(place.paths)));
+                        }
+                    }
+                });
+            }
+
+            return this;
+        };
+
+        Charcoal.Admin.Property_Input_Polyline_Widget = Polyline;
+
+    }(jQuery, document));
+
+</script>

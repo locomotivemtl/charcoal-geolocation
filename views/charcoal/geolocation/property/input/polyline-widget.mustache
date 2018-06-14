@@ -1,14 +1,12 @@
 {{!--
-    Point Widget Control
+    Polyline Widget Control
     ==================
 
-    `charcoal/geolocation/property/input/point-widget`
+    `charcoal/geolocation/property/input/polyline-widget`
 
-    The point input widget will allow the user to access data that come from a google map
+    The polyline input widget will allow the user to access data that come from a google map
     There are difference possible action such as:
-    - Create new marker
-    - Add marker by address
-    - Center map by address
+    - Create new polyline
 
 --}}
 
@@ -18,14 +16,14 @@
 </div>
 
 {{# addJs }}
-    {{> charcoal/geolocation/property/input/script/point-widget }}
+    {{> charcoal/geolocation/property/input/script/polyline-widget }}
     <script>
         var inputOptions = {
             id           : '{{ inputId }}',
             type         : '{{ inputType }}',
             data         :  {{& controlDataForJsAsJson }},
             controls_name: 'map_toolbox_{{ inputId }}',
-            mode         : 'marker'
+            mode         : 'line'
         };
 
         Charcoal.Admin.manager().add_property_input(inputOptions);
