@@ -14,4 +14,17 @@ class PointWidgetInput extends MapWidgetInput
     {
         return false;
     }
+
+    /**
+     * Retrieve the default map widget options.
+     *
+     * @return array
+     */
+    public function defaultMapOptions()
+    {
+        return [
+            'api_key' => $this->apiKey(),
+            'multiple' => $this->multiple()
+        ];
+    }
 }

@@ -156,7 +156,10 @@ class MapWidgetInput extends AbstractPropertyInput
      */
     public function defaultMapOptions()
     {
-        return ['api_key' => $this->apiKey()];
+        return [
+            'api_key' => $this->apiKey(),
+            'multiple' => true
+        ];
     }
 
     /**
