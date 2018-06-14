@@ -11,10 +11,14 @@ use Charcoal\Property\AbstractProperty;
 // from 'charcoal-translation'
 use Charcoal\Translator\Translation;
 
+// local dependencies
+use Charcoal\Geolocation\Property\GeolocationInterface;
+
 /**
  * Class AbstractGeometryProperty
  */
-abstract class AbstractGeolocationProperty extends AbstractProperty
+abstract class AbstractGeolocationProperty extends AbstractProperty implements
+    GeolocationInterface
 {
     /**
      * The SQL data type.
@@ -146,11 +150,4 @@ abstract class AbstractGeolocationProperty extends AbstractProperty
 
         return $val;
     }
-
-    /**
-     * Retrieve the property geolocation format.
-     *
-     * @return string
-     */
-    abstract public function geolocationType();
 }
