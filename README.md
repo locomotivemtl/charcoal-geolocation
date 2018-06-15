@@ -1,4 +1,4 @@
-Charcoal FooBar
+Charcoal Geolocation
 ===============
 
 [![License][badge-license]][charcoal-geolocation]
