@@ -77,7 +77,7 @@ abstract class AbstractGeolocationProperty extends AbstractProperty implements
         }
 
         /** Parse multilingual values */
-        if ($this->l10n()) {
+        if ($this['l10n']) {
             $propertyValue = $this->l10nVal($val, $options);
             if ($propertyValue === null) {
                 return '';
@@ -101,7 +101,7 @@ abstract class AbstractGeolocationProperty extends AbstractProperty implements
     public function parseOne($val)
     {
         if ($val === null || $val === '') {
-            if ($this->allowNull()) {
+            if ($this['allowNull']) {
                 return null;
             } else {
                 throw new InvalidArgumentException(
@@ -130,7 +130,7 @@ abstract class AbstractGeolocationProperty extends AbstractProperty implements
             return null;
         }
 
-        if (!$this->l10n() && $val instanceof Translation) {
+        if (!$this['l10n'] && $val instanceof Translation) {
             $val = (string)$val;
         }
 

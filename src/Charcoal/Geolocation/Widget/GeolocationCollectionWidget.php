@@ -2,27 +2,27 @@
 
 namespace Charcoal\Geolocation\Widget;
 
-use UnexpectedValueException;
-use InvalidArgumentException;
 use ArrayAccess;
+use InvalidArgumentException;
+use UnexpectedValueException;
 
-// from 'charcoal-property'
-use Charcoal\Property\PropertyInterface;
-
-// from 'charcoal-core'
-use Charcoal\Model\ModelInterface;
-
-// local dependencies
-use Charcoal\Geolocation\Property\GeolocationInterface;
-
-// from 'pimple'
+// From 'pimple/pimple'
 use Pimple\Container;
 
-// from 'charcoal-admin'
+// From 'locomotivemtl/charcoal-property'
+use Charcoal\Property\PropertyInterface;
+
+// from 'locomotivemtl/charcoal-core'
+use Charcoal\Model\ModelInterface;
+
+// From 'locomotivemtl/charcoal-admin'
 use Charcoal\Admin\AdminWidget;
 use Charcoal\Admin\Support\HttpAwareTrait;
 use Charcoal\Admin\Ui\CollectionContainerInterface;
 use Charcoal\Admin\Ui\CollectionContainerTrait;
+
+// Local dependencies
+use Charcoal\Geolocation\Property\GeolocationInterface;
 
 /**
  * Displays object collection on a map.
@@ -187,7 +187,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
     public function multiple()
     {
         if (!isset($this->multiple)) {
-            $this->multiple = $this->geometryPropertyObject()->multiple();
+            $this->multiple = $this->geometryPropertyObject()['multiple'];
         }
 
         return $this->multiple;
@@ -199,8 +199,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
     public function geolocationType()
     {
         if (!isset($this->geolocationType)) {
-            $this->geolocationType = $this->geometryPropertyObject()
-                                          ->geolocationType();
+            $this->geolocationType = $this->geometryPropertyObject()->geolocationType();
         }
 
         return $this->geolocationType;
@@ -320,7 +319,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                 $out[] = [
                     'type'     => 'marker',
                     'coords'   => $v,
-                    'id'       => $obj->id(),
+                    'id'       => $obj['id'],
                     'edit_url' => $this->objectEditUrl($obj)
                 ];
             }
@@ -328,7 +327,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
             $out[] = [
                 'type'     => 'marker',
                 'coords'   => $value,
-                'id'       => $obj->id(),
+                'id'       => $obj['id'],
                 'edit_url' => $this->objectEditUrl($obj)
             ];
         }
@@ -358,7 +357,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                 $out[] = [
                     'type'     => 'line',
                     'paths'    => $v,
-                    'id'       => $obj->id(),
+                    'id'       => $obj['id'],
                     'edit_url' => $this->objectEditUrl($obj)
                 ];
             }
@@ -366,7 +365,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
             $out[] = [
                 'type'     => 'line',
                 'paths'    => $value,
-                'id'       => $obj->id(),
+                'id'       => $obj['id'],
                 'edit_url' => $this->objectEditUrl($obj)
             ];
         }
@@ -396,7 +395,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                 $out[] = [
                     'type'     => 'polygon',
                     'paths'    => $v,
-                    'id'       => $obj->id(),
+                    'id'       => $obj['id'],
                     'edit_url' => $this->objectEditUrl($obj)
                 ];
             }
@@ -404,7 +403,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
             $out[] = [
                 'type'     => 'polygon',
                 'paths'    => $value,
-                'id'       => $obj->id(),
+                'id'       => $obj['id'],
                 'edit_url' => $this->objectEditUrl($obj)
             ];
         }
@@ -434,7 +433,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                 $out[] = [
                     'type'     => 'marker',
                     'coords'    => $coords,
-                    'id'       => $obj->id(),
+                    'id'       => $obj['id'],
                     'edit_url' => $this->objectEditUrl($obj)
                 ];
             }
@@ -445,7 +444,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                 $out[] = [
                     'type'     => 'line',
                     'paths'    => $lines,
-                    'id'       => $obj->id(),
+                    'id'       => $obj['id'],
                     'edit_url' => $this->objectEditUrl($obj)
                 ];
             }
@@ -456,7 +455,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                 $out[] = [
                     'type'     => 'polygon',
                     'paths'    => $polygons,
-                    'id'       => $obj->id(),
+                    'id'       => $obj['id'],
                     'edit_url' => $this->objectEditUrl($obj)
                 ];
             }
