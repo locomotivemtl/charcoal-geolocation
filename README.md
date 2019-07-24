@@ -15,9 +15,6 @@ A [Charcoal][charcoal-app] service provider my cool feature.
 
 -   [Installation](#installation)
     -   [Dependencies](#dependencies)
--   [Service Provider](#service-provider)
-    -   [Parameters](#parameters)
-    -   [Services](#services)
 -   [Configuration](#configuration)
 -   [Usage](#usage)
 -   [Development](#development)
@@ -37,8 +34,6 @@ The preferred (and only supported) method is with Composer:
 $ composer require locomotivemtl/charcoal-geolocation
 ```
 
-
-
 ### Dependencies
 
 -   [charcoal-core](https://github.com/locomotivemtl/charcoal-core) 
@@ -48,21 +43,6 @@ $ composer require locomotivemtl/charcoal-geolocation
 #### Required
 
 -   [**PHP 5.6+**](https://php.net): _PHP 7_ is recommended.
-
-
-
-## Service Provider
-
-### Parameters
-
---TBD--
-
-
-
-### Services
-
---TBD--
-
 
 
 ## Configuration
@@ -181,13 +161,12 @@ $ composer test
     [https://codedoc.pub/locomotivemtl/charcoal-geolocation/master/](https://codedoc.pub/locomotivemtl/charcoal-geolocation/master/index.html)
 
 
-
 ### Development Dependencies
 
 -   [php-coveralls/php-coveralls][phpcov]
 -   [phpunit/phpunit][phpunit]
 -   [squizlabs/php_codesniffer][phpcs]
-
+-   [seld/jsonlint][jsonlint]
 
 
 ### Coding Style
