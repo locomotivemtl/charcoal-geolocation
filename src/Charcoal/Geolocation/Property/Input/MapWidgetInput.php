@@ -270,10 +270,10 @@ class MapWidgetInput extends AbstractPropertyInput
 
             // Base Property
             'required'           => $this->required(),
-            'l10n'               => $this->property()->l10n(),
+            'l10n'               => $this->property()['l10n'],
             'multiple'           => $this->multiple(),
             'multiple_separator' => $this->property()->multipleSeparator(),
-            'multiple_options'   => $this->property()->multipleOptions(),
+            'multiple_options'   => $this->property()['multipleOptions'],
         ];
 
         return $data;
