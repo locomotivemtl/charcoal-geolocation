@@ -291,9 +291,8 @@ class GeolocationCollectionWidget extends AdminWidget implements
         }
 
         foreach ($this->geolocationObject as $obj) {
-            $GLOBALS['widget_template'] = $this->infoboxTemplate();
+            $this->setDynamicTemplate('widget_template', $this->infoboxTemplate());
             yield $obj;
-            $GLOBALS['widget_template'] = '';
         }
     }
 
