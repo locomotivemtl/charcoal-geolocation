@@ -3,7 +3,11 @@
         .o-toolbox_actions.-round {
             position: absolute;
             z-index: 1;
-            top: 40px;
+        }
+        .o-toolbox_actions_group {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
         .o-geotoolbox_button {
             margin: 10px;
@@ -58,7 +62,7 @@
 {{/ addCss }}
 
 <div class="o-toolbox_actions -round">
-    <div class="btn-group-toggle h-100" role="group"
+    <div class="btn-group-toggle h-100 o-toolbox_actions_group" role="group"
          aria-label="{{# _t }}Mapping Actions{{/ _t }}" data-toggle="buttons">
 
         {{# showMapTools }}
