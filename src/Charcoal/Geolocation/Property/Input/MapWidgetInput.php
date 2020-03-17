@@ -136,6 +136,34 @@ class MapWidgetInput extends AbstractPropertyInput
     }
 
     /**
+     * Retrieve the default map widget options.
+     *
+     * @return array
+     */
+    public function defaultMapOptions()
+    {
+        $options = [
+            'api_key'  => $this->apiKey(),
+            'multiple' => true
+        ];
+
+        if (isset($this->mapConfig)) {
+            $config = $this->mapConfig;
+
+            if ($config['map'] && $config['map']['defaultCenter']) {
+                $options['map'] = [
+                    'center' => [
+                        'x' => $config['map']['defaultCenter'][0],
+                        'y' => $config['map']['defaultCenter'][1]
+                    ]
+                ];
+            }
+        }
+
+        return $options;
+    }
+
+    /**
      * Retrieve the map widget's options.
      *
      * @return array
@@ -147,19 +175,6 @@ class MapWidgetInput extends AbstractPropertyInput
         }
 
         return $this->mapOptions;
-    }
-
-    /**
-     * Retrieve the default map widget options.
-     *
-     * @return array
-     */
-    public function defaultMapOptions()
-    {
-        return [
-            'api_key' => $this->apiKey(),
-            'multiple' => true
-        ];
     }
 
     /**
@@ -293,6 +308,10 @@ class MapWidgetInput extends AbstractPropertyInput
             $this->setApiKey($container['admin/config']['apis.google.map.key']);
         } elseif (isset($container['config']['apis.google.map.key'])) {
             $this->setApiKey($container['config']['apis.google.map.key']);
+        }
+
+        if (isset($container['map/config'])) {
+            $this->mapConfig = $container['map/config'];
         }
     }
 }
