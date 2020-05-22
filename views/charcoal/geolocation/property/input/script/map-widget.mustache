@@ -34,6 +34,8 @@
 
             this._map_options = data.data.map_options;
             this._multiple = data.data.map_options.multiple;
+            // Never send multiple true to BB gmap
+            this._map_options.multiple = false;
             this._editing_mode = data.mode || null;
             this._map_input_model = this.$map_input.get(0);
 
@@ -130,6 +132,7 @@
             this.default_place_opts = {
                 style    : this.default_styles,
                 editable : true,
+                multiple : true,
                 draggable: true
             };
 
@@ -233,6 +236,8 @@
 
                     var type = that._editing_mode;
 
+                    console.log(type);
+                    console.log(object_id);
                     that.controller().create_new(type, object_id);
                 }
 
