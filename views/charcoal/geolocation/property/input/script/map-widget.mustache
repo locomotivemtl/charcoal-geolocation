@@ -136,7 +136,7 @@
                 draggable: true
             };
 
-            this._map_options = $.extend(true, this.default_map_options, this._map_options);
+            this.map_options = $.extend(true, this.default_map_options, this._map_options);
         };
 
         Map.prototype.init_map = function () {
@@ -144,7 +144,7 @@
             // Create new map instance
             this._controller = new window.BB.gmap.controller(
                     this.$map.find('.js-map-maker-map').get(0),
-                    this._map_options
+                    this.map_options
             );
 
             // Init new map instance
@@ -413,6 +413,20 @@
 
             return this;
         };
+
+        Map.prototype.destroy = function () {
+            var ctrl = this.controller();
+            if (ctrl.focused()) {
+                ctrl.remove_focus();
+                this._is_editing = false;
+            }
+
+            this.$map.find('[name="' + this.data.controls_name + '"]').checked = false;
+
+            this._object_inc = 0;
+
+            this.$map.off();
+        }
 
         Charcoal.Admin.Property_Input_Map_Widget = Map;
 
