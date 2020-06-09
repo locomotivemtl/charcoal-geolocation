@@ -63,12 +63,12 @@
 
 <div class="o-toolbox_actions -round">
     <div class="btn-group-toggle h-100 o-toolbox_actions_group" role="group"
-         aria-label="{{# _t }}Mapping Actions{{/ _t }}" data-toggle="buttons">
+         aria-label="{{# _t }}Mapping Actions{{/ _t }}">
 
         {{# showMapTools }}
         {{# mapTools }}
             {{# point }}
-            <label class="o-geotoolbox_button btn btn-primary btn-lg js-display-marker-toolbox">
+            <label class="o-geotoolbox_button btn btn-primary btn-lg js-display-marker-toolbox" data-toggle="button">
                 <svg class="o-toolbox_icon" role="img">
                     <use xlink:href="{{ baseUrl }}assets/admin/images/svgs.svg#icon-map-marker"></use>
                 </svg>
@@ -84,7 +84,7 @@
             {{/ point }}
 
             {{# polyline }}
-            <label class="o-geotoolbox_button btn btn-primary btn-lg js-add-line">
+            <label class="o-geotoolbox_button btn btn-primary btn-lg js-add-line" data-toggle="button">
                 <svg class="o-toolbox_icon" role="img">
                     <use xlink:href="{{ baseUrl }}assets/admin/images/svgs.svg#icon-map-path"></use>
                 </svg>
@@ -99,7 +99,7 @@
             {{/ polyline }}
 
             {{# polygon }}
-            <label class="o-geotoolbox_button btn btn-primary btn-lg js-add-polygon">
+            <label class="o-geotoolbox_button btn btn-primary btn-lg js-add-polygon" data-toggle="button">
                 <svg class="o-toolbox_icon" role="img">
                     <use xlink:href="{{ baseUrl }}assets/admin/images/svgs.svg#icon-map-region"></use>
                 </svg>
