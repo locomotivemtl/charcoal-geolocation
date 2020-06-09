@@ -15,6 +15,11 @@
             this.set_properties(data).init();
         };
 
+        Map.EVENT_NAMESPACE = 'geolocation';
+        Map.EVENT = {
+            GOOGLE_MAP_LOADED: `google-map-loaded.${Map.EVENT_NAMESPACE}`
+        };
+
         Map.prototype = Object.create(Charcoal.Admin.Property.prototype);
         Map.prototype.constructor = Charcoal.Admin.Property_Input_Map_Widget;
         Map.prototype.parent = Charcoal.Admin.Property.prototype;
@@ -47,24 +52,27 @@
             var that = this;
 
             if (typeof google === 'undefined') {
-                $.getScript(
-                        'https://maps.googleapis.com/maps/api/js?sensor=false' +
-                        '&callback=_tmp_google_onload_function&key=' + this._map_options.api_key,
-                        function () {
-                        }
-                );
+                if (window._geolocation_tmp_google !== true) {
+                    window._geolocation_tmp_google = true;
+                    $.getScript(
+                            'https://maps.googleapis.com/maps/api/js?sensor=false' +
+                            '&callback=_geolocation_tmp_google_onload_function&key=' + this._map_options.api_key,
+                            function () {}
+                    );
 
-                // If google is undefined,
-                window._tmp_google_onload_function = function () {
-                    that.init();
-                };
+                    // If google is undefined,
+                    window._geolocation_tmp_google_onload_function = function () {
+                        document.dispatchEvent(new Event(Map.EVENT.GOOGLE_MAP_LOADED));
+                    };
+                }
+
+                document.addEventListener(Map.EVENT.GOOGLE_MAP_LOADED, (e) => {
+                    this.init();
+                }, { once: true })
 
                 return;
             }
 
-            if (typeof window._tmp_google_onload_function !== 'undefined') {
-                delete window._tmp_google_onload_function;
-            }
             if (typeof BB === 'undefined' || typeof google === 'undefined') {
                 // We don't have what we need
                 console.error('Plugins not loaded');
