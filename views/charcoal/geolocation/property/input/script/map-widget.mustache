@@ -80,7 +80,7 @@
             }
 
             // Shouldn't happen at that point
-            if (typeof this.data.id === 'undefined') {
+            if (typeof this.opts().id === 'undefined') {
                 console.error('Missing ID');
             }
 
@@ -174,7 +174,7 @@
 
             var key = 'object';
 
-            this.$map.on('change', '[name="' + this.data.controls_name + '"]', function (event) {
+            this.$map.on('change', '[name="' + this.opts().controls_name + '"]', function (event) {
                 var type = $(event.currentTarget).val();
 
                 if (that._editing_mode !== type) {
@@ -429,7 +429,7 @@
                 this._is_editing = false;
             }
 
-            this.$map.find('[name="' + this.data.controls_name + '"]').checked = false;
+            this.$map.find('[name="' + this.opts().controls_name + '"]').checked = false;
 
             this._object_inc = 0;
 
