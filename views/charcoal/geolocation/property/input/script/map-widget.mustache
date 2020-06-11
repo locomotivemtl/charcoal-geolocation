@@ -148,7 +148,6 @@
         };
 
         Map.prototype.init_map = function () {
-
             // Create new map instance
             this._controller = new window.BB.gmap.controller(
                     this.$map.find('.js-map-maker-map').get(0),
@@ -244,8 +243,6 @@
 
                     var type = that._editing_mode;
 
-                    console.log(type);
-                    console.log(object_id);
                     that.controller().create_new(type, object_id);
                 }
 
@@ -365,7 +362,7 @@
                 });
 
                 if (merged_places) {
-                    this._map_options.places = merged_places;
+                    this.map_options.places = merged_places;
                 }
 
                 if (index) {
@@ -423,6 +420,9 @@
         };
 
         Map.prototype.destroy = function () {
+            // Might not be a good solution, but it fixes data loss when the manager re-rerenders
+            this.save();
+
             var ctrl = this.controller();
             if (ctrl.focused()) {
                 ctrl.remove_focus();
