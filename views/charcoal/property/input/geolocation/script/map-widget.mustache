@@ -1,0 +1,692 @@
+<script>
+
+    /**
+     *
+     */
+    (function () {
+
+        var DeletePopup
+
+        /**
+         * `charcoal/admin/property/input/map-widget`
+         * Property_Input_Map_Widget Javascript class
+         *
+         */
+        var Map = function (data) {
+            // Input type
+            // data.input_type = 'charcoal/geolocation/property/input/map-widget';
+            Charcoal.Admin.Property.call(this, data);
+
+            this.set_properties(data).init();
+        };
+
+        Map.EVENT_NAMESPACE = 'geolocation';
+        Map.EVENT = {
+            GOOGLE_MAP_LOADED: `google-map-loaded.${Map.EVENT_NAMESPACE}`
+        };
+
+        Map.prototype = Object.create(Charcoal.Admin.Property.prototype);
+        Map.prototype.constructor = Charcoal.Admin.Property_Input_Map_Widget;
+        Map.prototype.parent = Charcoal.Admin.Property.prototype;
+
+        Map.prototype.set_properties = function (data) {
+            // Google Map instance
+            this._map = undefined;
+            this._selectedFeature = null;
+            this._isExtruding = false
+            this._extrudeEvent = undefined;
+
+            // references
+            this.$map = this.element();
+            this.$map_input = this.$map.find('.js-input');
+            this.$map_maker = this.$map.find('.js-map-maker');
+
+            this._map_options = data.data.map_options;
+            this._multiple = data.data.map_options.multiple;
+            // Never send multiple true to BB gmap
+            this._map_options.multiple = false;
+
+            return this;
+        };
+
+        Map.prototype.init = function () {
+            // Scope
+            var that = this;
+
+            if (typeof google === 'undefined') {
+                if (window._geolocation_tmp_google !== true) {
+                    window._geolocation_tmp_google = true;
+                    $.getScript(
+                            'https://maps.googleapis.com/maps/api/js?sensor=false' +
+                            '&callback=_geolocation_tmp_google_onload_function&key=' + this._map_options.api_key,
+                            function () {}
+                    );
+
+                    // If google is undefined,
+                    window._geolocation_tmp_google_onload_function = function () {
+                        document.dispatchEvent(new Event(Map.EVENT.GOOGLE_MAP_LOADED));
+                    };
+                }
+
+                document.addEventListener(Map.EVENT.GOOGLE_MAP_LOADED, (e) => {
+                    this.init();
+                }, { once: true })
+
+                return;
+            }
+
+            if (typeof google === 'undefined') {
+                // We don't have what we need
+                console.error('Plugins not loaded');
+                return false;
+            }
+
+            // Shouldn't happen at that point
+            if (typeof this.opts().id === 'undefined') {
+                console.error('Missing ID');
+            }
+
+            this.init_delete_popup();
+
+            this.init_configs();
+
+            this.init_map();
+
+            this.load_data();
+
+            this.register_map_actions();
+        };
+
+        Map.prototype.init_configs = function () {
+            var that = this;
+
+            this.default_styles = {
+                strokeColor: '#000',
+                strokeOpacity: 0.8,
+                strokeWeight: 5,
+                fillColor: '#FFF',
+                fillOpacity: 0.35,
+                hover: {
+                    strokeColor: '#6092F5',
+                    strokeOpacity: 1,
+                    fillColor: '#FFF',
+                    fillOpacity: 0.5
+                },
+                focused: {
+                    fillOpacity: 0.8,
+                    strokeColor: '#6092F5',
+                    fillColor: '#6092F5'
+                }
+            };
+
+            this.default_map_options = {
+                default_styles: this.default_styles,
+                use_clusterer: false,
+                max_fitbounds_zoom: 15,
+                map: {
+                    center: {
+                        x: 45.3712923,
+                        y: -73.9820994
+                    },
+                    zoom: 14,
+                    mapType: 'roadmap',
+                    coordsType: 'inpage', // array, json? (vs ul li)
+                    map_mode: 'default'
+                }
+            };
+
+            this.default_place_opts = {
+                style: this.default_styles,
+                editable: true,
+                multiple: true,
+                draggable: true
+            };
+
+            this.map_options = $.extend(true, this.default_map_options, this._map_options);
+        };
+
+        Map.prototype.init_map = function () {
+            // Already have a map!
+            if (this.map()) {
+                return this;
+            }
+
+            let map_options = this.map_options.map;
+
+            // Converts center position into google objects
+            map_options.center = new google.maps.LatLng(
+                parseFloat(map_options.center.x),
+                parseFloat(map_options.center.y)
+            );
+
+            // Create new map instance
+            this._map = new google.maps.Map(
+                this.$map.find('.js-map-maker-map').get(0),
+                map_options
+            );
+
+            // Dynamic feature styling based on feature property
+            this.map().data.setStyle(feature => {
+                let selected = feature.getProperty('selected') === true
+
+                return {
+                    strokeColor: '#6092F5',
+                    fillColor: '#6092F5',
+                    opacity: 0.75,
+                    ...(selected && {
+                        strokeWeight: 5,
+                        fillOpacity: 0.6,
+                        draggable: !this._isExtruding && !this.isDrawing(),
+                        editable: !this._isExtruding && !this.isDrawing(),
+                        opacity: 1,
+                        ...(this._isExtruding && {
+                            strokeColor: '#f56060',
+                            fillColor: '#f56060',
+                        })
+                    })
+                }
+            })
+
+            this.setMapStyles([ {
+                featureType: 'poi',
+                elementType: 'all',
+                stylers: [ { visibility: 'off' } ]
+            } ]);
+
+            // this.controller().remove_focus();
+        };
+
+        /**
+         * @param  array styles
+         * @return Map
+         */
+        Map.prototype.setMapStyles = function (styles) {
+            if (typeof styles != 'object') {
+                this.error('Invalid type styles in Input_Geolocation_Map_Widget.set_styles()' + styles);
+            }
+
+            // Set in options
+            this.map_options.map.styles = styles;
+
+            // Refresh RIGHT NOW
+            if (this.map()) {
+                this.map().setOptions({
+                    styles: styles
+                });
+            }
+
+            return this
+        };
+
+        Map.prototype.selectFeature = function (feature) {
+            this.clearSelection()
+            feature.setProperty('selected', true)
+
+            this._selectedFeature = feature
+
+            if (feature.getGeometry().getType() === 'Polygon') {
+                this.displayPolygonExtrusionControls(feature)
+            }
+
+            this.displayEditToolbar()
+        }
+
+        Map.prototype.displayPolygonExtrusionControls = function (feature) {
+            this.removePolygonExtrusionControls()
+
+            this.$map.on('clearSelection', this.removePolygonExtrusionControls.bind(this))
+            this.$map.on('deleteSelection', this.removePolygonExtrusionControls.bind(this))
+
+            this._geometryExtrudeEvent = this.map().data.addListener('setgeometry', ({feature}) => {
+                google.maps.event.removeListener(this._geometryExtrudeEvent)
+                this.displayPolygonExtrusionControls(feature)
+            })
+
+            feature.getGeometry().getArray().forEach((geometry, index) => {
+                if (index === 0) return
+
+                // Create a new DeletePopup and bind a callback to it
+                let deletePopup = new DeletePopup(geometry.getAt(0), () => {
+                    // Build the new geometry
+                    let newGeometryArray = feature.getGeometry().getArray()
+                    newGeometryArray.splice(index, 1)
+                    const newGeometry = new google.maps.Data.Polygon(newGeometryArray)
+                    feature.setGeometry(newGeometry)
+
+                    // This act as refresh for the active UI
+                    this.displayPolygonExtrusionControls(feature)
+                })
+
+                // Puts the deletePopup on the map
+                deletePopup.setMap(this.map())
+
+                // Listen for removal
+                this.$map.on('removeDeletePopup', function () {
+                    deletePopup.setMap(null)
+                    delete deletePopup
+                })
+            })
+        }
+
+        Map.prototype.removePolygonExtrusionControls = function () {
+            google.maps.event.removeListener(this._geometryExtrudeEvent)
+            this.$map.trigger('removeDeletePopup')
+            this.$map.off('removeDeletePopup')
+            this.$map.off('clearSelection')
+            this.$map.off('deleteSelection')
+        }
+
+        Map.prototype.selectTool = function (geometry) {
+            // If clicking on the active tool, deactivate edition instead.
+            if (!geometry) {
+                this.setDrawingMode(null)
+
+                this.hide_marker_toolbar()
+                this.hideEditToolbar()
+                return
+            }
+
+            if (geometry === 'Point') {
+                this.display_marker_toolbar()
+            } else {
+                this.hide_marker_toolbar()
+            }
+
+            this.setDrawingMode(geometry)
+
+            this.displayEditToolbar()
+        }
+
+        Map.prototype.handleAdd = function () {
+            const mode = this._selectedFeature?.getGeometry().getType() || this.getDrawingMode()
+
+            if (!this._isExtruding)
+                this.clearSelection()
+
+            this.setDrawingMode(null)
+            this.setDrawingMode(mode)
+        }
+
+        Map.prototype.handleExtrude = function () {
+            this._isExtruding = true
+            this._extrudeEvent = this.map().data.addListener('addfeature', ({feature}) => {
+                if (feature.getGeometry().getType() !== 'Polygon')
+                    return
+
+                // Find whether the new feature was intended to extrude another geometry
+                if (this._selectedFeature) {
+                    const target = this._selectedFeature
+                    if (target.getGeometry().getType() !== 'Polygon')
+                        return
+                    const geometryArray = target.getGeometry().getArray().concat(feature.getGeometry().getArray());
+                    const geometry = new google.maps.Data.Polygon(geometryArray)
+                    target.setGeometry(geometry)
+                    // Apparently we need to delay, otherwise the geometry will still be visible on the map
+                    setTimeout(() => this.removeFeature(feature), 1)
+                    this.displayPolygonExtrusionControls(target)
+                } else {
+                    this.selectFeature(feature)
+                    google.maps.event.removeListener(this._extrudeEvent)
+                    this.handleExtrude()
+                }
+            })
+
+            // this._extrusionFeature = this._selectedFeature
+
+            this._selectedFeature?.setProperty('extruding', true)
+            const mode = this._selectedFeature?.getGeometry().getType()
+            this.setDrawingMode(mode)
+            this.displayEditToolbar()
+        }
+
+        Map.prototype.handleConfirm = function () {
+            if (this._isExtruding) {
+                this._isExtruding = false
+                google.maps.event.removeListener(this._extrudeEvent)
+                this.setDrawingMode(null)
+                this._selectedFeature?.setProperty('extruding', false)
+                return
+            }
+
+            if (this.isDrawing()) {
+                // disable draw mode to focus on selected feature
+                this.setDrawingMode(null)
+
+                // If there is a selection, return here so we can continue the editing
+                if (this._selectedFeature) {
+                    return
+                }
+            } else {
+                this.clearSelection()
+            }
+
+            this.hide_marker_toolbar()
+            this.hideEditToolbar()
+        }
+
+        Map.prototype.handlerMapClick = function () {
+            this.clearSelection()
+            this.hideEditToolbar()
+        }
+
+        Map.prototype.handleDelete = function () {
+            // If we are drawing, we only want want to delete the active drawing and stay in drawing mode
+            if (this.getDrawingMode()) {
+                // By setting the drawing mode back to what it is right now, the google map layer is trashed.
+                this.setDrawingMode(this.getDrawingMode())
+                this.deleteSelection()
+            } else {
+                this.deleteSelection()
+                this.hideEditToolbar()
+            }
+        }
+
+        Map.prototype.clearSelection = function (event) {
+            this.map().data.forEach(feature => feature.setProperty('selected', false))
+            this.$map.trigger('clearSelection')
+            this._selectedFeature = null
+        }
+
+        Map.prototype.deleteSelection = function () {
+            this.map().data.forEach(feature => feature.getProperty('selected') && this.map().data.remove(feature))
+            this.$map.trigger('deleteSelection')
+            this._selectedFeature = null
+        }
+
+        Map.prototype.removeFeature = function (feature) {
+            this.map().data.remove(feature)
+        }
+
+        Map.prototype.isDrawing = function () {
+            return !!this.map().data.getDrawingMode();
+        }
+
+        Map.prototype.getDrawingMode = function () {
+            return this.map().data.getDrawingMode()
+        }
+
+        Map.prototype.setDrawingMode = function (mode) {
+            this.map().data.setDrawingMode(mode)
+            this.displayEditToolbar()
+        }
+
+        Map.prototype.register_map_actions = function () {
+            // When clicking on the map (when no tools are active)
+            this.map().addListener('click', event => this.handlerMapClick())
+
+            // When clicking on a feature
+            this.map().data.addListener('click', ({ feature }) => this.selectFeature(feature))
+
+            // Called when modifying/moving a geometry
+            this.map().data.addListener('setgeometry', event => {
+                // Update input value
+                this.map().data.toGeoJson((data) => {
+                    this.$map.find('input[type=hidden]').val(JSON.stringify(data));
+                });
+            })
+
+            // Called on feature creation
+            this.map().data.addListener('addfeature', ({feature}) => {
+
+                if (!this._isExtruding) {
+                    this.setDrawingMode(null)
+                    this.selectFeature(feature)
+                }
+
+                // Update input value
+                this.map().data.toGeoJson((data) => {
+                    this.$map.find('input[type=hidden]').val(JSON.stringify(data));
+                });
+            })
+
+
+            this.$map.on('click', '.js-tool-select-button', ({currentTarget}) => {
+                this.selectTool($(currentTarget).data('geometry'))
+            })
+
+            // this.$map.on('change', '[name="' + this.opts().controls_name + '"]', (event) => this.handleToolSelection(event));
+
+            // Bind the selection confirm button to clear the selection and confirm shape
+            this.$map.on('click', '.js-confirm', () => this.handleConfirm());
+
+            // Bind the selection delete button to feature deletion
+            this.$map.on('click', '.js-delete', () => this.handleDelete());
+
+            // Bind the selection add button to feature adding
+            this.$map.on('click', '.js-add', () => this.handleAdd());
+
+            // Bind the selection add button to feature adding
+            this.$map.on('click', '.js-extrude', () => this.handleExtrude());
+
+            this.$map.on('click', '.js-add_place_by_address', (e) => {
+                e.preventDefault();
+
+                var value = this.element().find('.js-address').text();
+                if (!value) {
+                    // No value specified, no need to go further
+                    return false;
+                }
+
+                // @TODO: add marker by address
+
+                // that.map().add_place_by_address('object' + that.object_index(), value, {
+                //     type: 'marker',
+                //     draggable: true,
+                //     editable: true,
+                //     // After loading the marker object
+                //     loaded_callback: function (marker) {
+                //         that.map().map().setCenter(marker.object().getPosition());
+                //     }
+                // });
+            });
+
+            this.$map.on('click', '.js-reset', (e) => {
+                e.preventDefault();
+                this.reset();
+            });
+
+        };
+
+        /**
+         * Return {google.maps1}
+         */
+        Map.prototype.map = function () {
+            return this._map;
+        };
+
+        Map.prototype.display_marker_toolbar = function () {
+            this.$map_maker.addClass('is-header-open');
+        };
+
+        Map.prototype.hide_marker_toolbar = function () {
+            this.$map_maker.removeClass('is-header-open');
+        };
+
+        Map.prototype.displayEditToolbar = function () {
+            // Only show the 'add' button when we are drawing and the mode either polygon or lineString
+            // if (this.isDrawing() && [ 'LineString', 'Polygon' ].indexOf(this.getDrawingMode()) >= 0) {
+            //     this.$map.find('.js-add').removeClass('is-disabled')
+            // } else {
+            //     this.$map.find('.js-add').addClass('is-disabled')
+            // }
+
+            // reset button states before processing tool type
+            this.$map.find('.js-toolbox_edit_actions button').removeClass('is-disabled')
+
+            if (this._isExtruding) {
+                this.$map.find('.js-extrude').addClass('is-disabled')
+                this.$map.find('.js-delete').addClass('is-disabled')
+            }
+
+            if (this.isDrawing()) {
+                switch (this.getDrawingMode()) {
+                    case 'Point':
+                        this.$map.find('.js-add').addClass('is-disabled')
+                        this.$map.find('.js-extrude').addClass('is-disabled')
+                        this.$map.find('.js-delete').addClass('is-disabled')
+                        break
+                    case 'LineString':
+                        this.$map.find('.js-add').addClass('is-disabled')
+                        this.$map.find('.js-extrude').addClass('is-disabled')
+                        break
+                    case 'Polygon':
+                        this.$map.find('.js-add').addClass('is-disabled')
+                        this.$map.find('.js-extrude').addClass('is-disabled')
+
+                }
+            } else {
+                switch (this._selectedFeature?.getGeometry().getType()) {
+                    case 'Point':
+                        // this.$map.find('.js-add').addClass('is-disabled')
+                        this.$map.find('.js-extrude').addClass('is-disabled')
+                        break
+                    case 'LineString':
+                        this.$map.find('.js-extrude').addClass('is-disabled')
+                        break
+                }
+            }
+
+            this.$map.find('.js-geotoolbox').addClass('edit_actions_active')
+        };
+
+        Map.prototype.hideEditToolbar = function () {
+            this.$map.find('.js-geotoolbox').removeClass('edit_actions_active')
+        };
+
+        Map.prototype.reset = function () {
+            this.map().data.forEach(feature => this.map().data.remove(feature))
+
+            return this;
+        }
+
+        Map.prototype.load_data = function () {
+            // Get current map state from DB
+            // This is located in the hidden input
+            var current_value = this.$map_input.val();
+            var default_place_opts = this.default_place_opts;
+
+            if (current_value) {
+                // this.map().data.addGeoJson(JSON.parse(current_value))
+                const geojson = JSON.parse(current_value)
+
+                const parsedGeoJSON = {
+                    'type': 'FeatureCollection',
+                    'features': geojson.type === 'GeometryCollection' ? geojson.geometries.map(feature => (
+                            {
+                                'type': 'Feature',
+                                'geometry': feature
+                            }
+                    )) : [ {
+                        'type': 'Feature',
+                        'geometry': geojson
+                    } ]
+                }
+
+                this.map().data.addGeoJson(parsedGeoJSON)
+            }
+        };
+
+        /**
+         * I believe this should fit the PHP model
+         * Added the save() function to be called on form submit
+         * Could be inherited from a global Charcoal.Admin.Property Prototype
+         * Extra ideas:
+         * - save
+         * - validate
+         * @return this (chainable)
+         */
+        Map.prototype.save = function () {
+            let out = new Promise((resolve, reject) => {
+                this.map().data.toGeoJson((data) => {
+                    this.$map.find('input[type=hidden]').val(JSON.stringify(data));
+
+                    resolve()
+                });
+            });
+
+
+            return out;
+            // Affect to the current property's input
+            // I see no reason to have more than one input hidden here.
+            // Split with classes or data if needed
+            // this.$map.find('input[type=hidden]').val(JSON.stringify(cleaned_places));
+        };
+
+        Map.prototype.destroy = function () {
+            // Might not be a good solution, but it fixes data loss when the manager re-rerenders
+            this.save();
+
+            this.$map.off();
+        }
+
+        Charcoal.Admin.Input_Geolocation_Map_Widget = Map;
+
+        // ITEM
+
+        Map.prototype.init_delete_popup = function () {
+            /**
+             * A customized popup on the map.
+             */
+            DeletePopup = class DeletePopup extends google.maps.OverlayView {
+                position;
+                containerDiv;
+                callback;
+
+                constructor(position, callback) {
+                    super();
+                    this.position = position;
+                    this.callback = callback;
+                    const content =  document.createElement("div")
+                    content.innerHTML = '<span class="fa fa-lg fa-times"></span>'
+                    content.classList.add("popup-bubble");
+                    // This zero-height div is positioned at the bottom of the bubble.
+                    const bubbleAnchor = document.createElement("div");
+                    bubbleAnchor.classList.add("popup-bubble-anchor");
+                    bubbleAnchor.appendChild(content);
+                    // This zero-height div is positioned at the bottom of the tip.
+                    this.containerDiv = document.createElement("div");
+                    this.containerDiv.classList.add("popup-container");
+                    this.containerDiv.appendChild(bubbleAnchor);
+                    // Optionally stop clicks, etc., from bubbling up to the map.
+                    DeletePopup.preventMapHitsAndGesturesFrom(this.containerDiv);
+                }
+
+                /** Called when the popup is added to the map. */
+                onAdd() {
+                    this.getPanes().floatPane.appendChild(this.containerDiv);
+                    this.containerDiv.addEventListener('click', this.callback)
+                }
+
+                /** Called when the popup is removed from the map. */
+                onRemove() {
+                    this.containerDiv.removeEventListener('click', this.callback)
+                    if (this.containerDiv.parentElement) {
+                        this.containerDiv.parentElement.removeChild(this.containerDiv);
+                    }
+                }
+
+                /** Called each frame when the popup needs to draw itself. */
+                draw() {
+                    const divPosition = this.getProjection().fromLatLngToDivPixel(
+                            this.position
+                    );
+                    // Hide the popup when it is far out of view.
+                    const display =
+                            Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000
+                                    ? "block"
+                                    : "none";
+
+                    if (display === "block") {
+                        this.containerDiv.style.left = divPosition.x + "px";
+                        this.containerDiv.style.top = divPosition.y + "px";
+                    }
+
+                    if (this.containerDiv.style.display !== display) {
+                        this.containerDiv.style.display = display;
+                    }
+                }
+            }
+        }
+
+    }(jQuery, document));
+</script>
