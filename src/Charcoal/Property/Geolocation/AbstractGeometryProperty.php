@@ -117,11 +117,26 @@ abstract class AbstractGeometryProperty extends AbstractProperty implements
     }
 
     /**
-     * When writing data to database, use the MySQL function to convert GeoJSON to geometry.
+     * Format the property's PDO binding parameter identifier.
+     *
+     * This method can be overridden for custom named placeholder parsing.
+     *
+     * This method allows a property to apply an SQL function to a named placeholder:
+     *
+     * ```sql
+     * function ($param) {
+     *     return 'ST_GeomFromGeoJSON('.$param.')';
+     * }
+     * ```
+     *
+     * This method returns a closure to be called during the processing of object
+     * inserts and updates in {@see \Charcoal\Source\DatabaseSource}.
+     *
+     * @link https://www.php.net/manual/en/pdostatement.bindparam.php
      *
      * @return \Closure
      */
-    protected function parseBinding(): \Closure
+    protected function sqlPdoBindParamExpression(): \Closure
     {
         /**
          * @param string $bind The PDO bind string.
@@ -132,16 +147,17 @@ abstract class AbstractGeometryProperty extends AbstractProperty implements
     }
 
     /**
-     * When reading data from database, convert MySQL geometry to GeoJSON.
+     * Overridable to allow for custom Field Name parsing.
      *
-     * @param string $key       The property field key.
-     * @param mixed  $fieldName The raw filed name.
-     * @return string
+     * This allows to add additional functions to a select statement that looks like this :
+     *  'MySQL_FUNCTION(select)'
+     *
+     * @return \Closure
      */
-    protected function fieldExpression($key, $fieldName): string
+    protected function sqlSelectExpression(): \Closure
     {
-        unset($key);
-
-        return 'ST_AsGeoJSON('.$fieldName.') as '.$fieldName.'';
+        return function ($select) {
+            return 'ST_AsGeoJSON('.$select.')';
+        };
     }
 }
