@@ -5,22 +5,17 @@ namespace Charcoal\Geolocation\Widget;
 use ArrayAccess;
 use InvalidArgumentException;
 use UnexpectedValueException;
-
 // From 'pimple/pimple'
 use Pimple\Container;
-
 // From 'locomotivemtl/charcoal-property'
 use Charcoal\Property\PropertyInterface;
-
 // from 'locomotivemtl/charcoal-core'
 use Charcoal\Model\ModelInterface;
-
 // From 'locomotivemtl/charcoal-admin'
 use Charcoal\Admin\AdminWidget;
 use Charcoal\Admin\Support\HttpAwareTrait;
 use Charcoal\Admin\Ui\CollectionContainerInterface;
 use Charcoal\Admin\Ui\CollectionContainerTrait;
-
 // Local dependencies
 use Charcoal\Geolocation\Property\GeolocationInterface;
 
@@ -319,7 +314,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                     'type'     => 'marker',
                     'coords'   => $v,
                     'id'       => $obj['id'],
-                    'edit_url' => $this->objectEditUrl($obj)
+                    'edit_url' => $this->objectEditUrl($obj),
                 ];
             }
         } else {
@@ -327,7 +322,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                 'type'     => 'marker',
                 'coords'   => $value,
                 'id'       => $obj['id'],
-                'edit_url' => $this->objectEditUrl($obj)
+                'edit_url' => $this->objectEditUrl($obj),
             ];
         }
 
@@ -357,7 +352,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                     'type'     => 'line',
                     'paths'    => $v,
                     'id'       => $obj['id'],
-                    'edit_url' => $this->objectEditUrl($obj)
+                    'edit_url' => $this->objectEditUrl($obj),
                 ];
             }
         } else {
@@ -365,7 +360,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                 'type'     => 'line',
                 'paths'    => $value,
                 'id'       => $obj['id'],
-                'edit_url' => $this->objectEditUrl($obj)
+                'edit_url' => $this->objectEditUrl($obj),
             ];
         }
 
@@ -395,7 +390,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                     'type'     => 'polygon',
                     'paths'    => $v,
                     'id'       => $obj['id'],
-                    'edit_url' => $this->objectEditUrl($obj)
+                    'edit_url' => $this->objectEditUrl($obj),
                 ];
             }
         } else {
@@ -403,7 +398,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                 'type'     => 'polygon',
                 'paths'    => $value,
                 'id'       => $obj['id'],
-                'edit_url' => $this->objectEditUrl($obj)
+                'edit_url' => $this->objectEditUrl($obj),
             ];
         }
 
@@ -433,7 +428,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                     'type'     => 'marker',
                     'coords'    => $coords,
                     'id'       => $obj['id'],
-                    'edit_url' => $this->objectEditUrl($obj)
+                    'edit_url' => $this->objectEditUrl($obj),
                 ];
             }
         }
@@ -444,7 +439,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                     'type'     => 'line',
                     'paths'    => $lines,
                     'id'       => $obj['id'],
-                    'edit_url' => $this->objectEditUrl($obj)
+                    'edit_url' => $this->objectEditUrl($obj),
                 ];
             }
         }
@@ -455,7 +450,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                     'type'     => 'polygon',
                     'paths'    => $polygons,
                     'id'       => $obj['id'],
-                    'edit_url' => $this->objectEditUrl($obj)
+                    'edit_url' => $this->objectEditUrl($obj),
                 ];
             }
         }
@@ -471,9 +466,9 @@ class GeolocationCollectionWidget extends AdminWidget implements
     public function objectEditUrl($obj)
     {
         return $this->view()->renderTemplate(
-            '{{baseUrl}}admin/object/edit?'.
-            '{{#main_menu}}main_menu={{.}}&{{/main_menu}}'.
-            'obj_type={{obj_type}}&'.
+            '{{baseUrl}}admin/object/edit?' .
+            '{{#main_menu}}main_menu={{.}}&{{/main_menu}}' .
+            'obj_type={{obj_type}}&' .
             'obj_id={{id}}',
             $obj
         );
@@ -664,7 +659,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
                 $method = $matches[2];
 
                 if ($class === 'parent') {
-                    $resolved = [$model, $class.'::'.$method];
+                    $resolved = [$model, $class . '::' . $method];
                 }
             }
 
@@ -779,7 +774,7 @@ class GeolocationCollectionWidget extends AdminWidget implements
     {
         return [
             'map_options' => $this->mapOptions(),
-            'places'      => $this->geolocations()
+            'places'      => $this->geolocations(),
         ];
     }
 }

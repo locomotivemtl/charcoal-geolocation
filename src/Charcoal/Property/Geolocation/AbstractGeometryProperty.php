@@ -142,7 +142,7 @@ abstract class AbstractGeometryProperty extends AbstractProperty implements
          * @param string $bind The PDO bind string.
          */
         return function ($bind) {
-            return 'ST_GeomFromGeoJSON('.$bind.')';
+            return 'ST_GeomFromGeoJSON(' . $bind . ')';
         };
     }
 
@@ -157,7 +157,7 @@ abstract class AbstractGeometryProperty extends AbstractProperty implements
     protected function sqlSelectExpression(): \Closure
     {
         return function ($select) {
-            return 'ST_AsGeoJSON('.$select.')';
+            return 'ST_AsGeoJSON(' . $select . ')';
         };
     }
 }
