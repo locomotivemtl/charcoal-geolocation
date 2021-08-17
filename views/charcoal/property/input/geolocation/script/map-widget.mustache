@@ -6,6 +6,13 @@
     (function () {
 
         var DeletePopup
+        const KeyCodes = {
+            KEY_BACK_SPACE: 8,
+            KEY_RETURN: 13,
+            KEY_ENTER: 14,
+            KEY_ESCAPE: 27,
+            KEY_DELETE: 46
+        }
 
         /**
          * `charcoal/admin/property/input/map-widget`
@@ -370,7 +377,7 @@
         }
 
         Map.prototype.handleDelete = function () {
-            // If we are drawing, we only want want to delete the active drawing and stay in drawing mode
+            // If we are drawing, we only want to delete the active drawing and stay in drawing mode
             if (this.getDrawingMode()) {
                 // By setting the drawing mode back to what it is right now, the google map layer is trashed.
                 this.setDrawingMode(this.getDrawingMode())
@@ -439,7 +446,6 @@
                 });
             })
 
-
             this.$map.on('click', '.js-tool-select-button', ({currentTarget}) => {
                 this.selectTool($(currentTarget).data('geometry'))
             })
@@ -484,6 +490,24 @@
                 e.preventDefault();
                 this.reset();
             });
+
+            // Handle keyboard shortcuts
+            $(document).on('keydown', this.$map, e => {
+                if (e.isComposing || e.keyCode === 229) {
+                    return;
+                }
+
+                switch (e.keyCode) {
+                    case KeyCodes.KEY_BACK_SPACE:
+                    case KeyCodes.KEY_DELETE:
+                    case KeyCodes.KEY_ESCAPE:
+                        this.handleDelete()
+                        break
+                    case KeyCodes.KEY_RETURN:
+                    case KeyCodes.KEY_ENTER:
+                        this.handleConfirm()
+                }
+            })
 
         };
 
@@ -616,6 +640,7 @@
             // Might not be a good solution, but it fixes data loss when the manager re-rerenders
             this.save();
 
+            $(document).off('keydown', this.$map)
             this.$map.off();
         }
 
