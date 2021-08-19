@@ -312,6 +312,32 @@
             this.selectTool(mode)
         }
 
+        Map.prototype.addPointByAddress = function ()
+        {
+            const value = this.element().find('.js-address').text();
+            if (!value) {
+                // No value specified, no need to go further
+                return false;
+            }
+
+            const geocoder = new google.maps.Geocoder();
+
+            geocoder.geocode(
+                {
+                    'address': value
+                },
+                (results, status) => {
+                    if (status === google.maps.GeocoderStatus.OK) {
+                        const location = results[0].geometry.location;
+                        const newPoint = new google.maps.Data.Feature({
+                            geometry: location,
+                        })
+                        this.map().data.add(newPoint);
+                    }
+                }
+            );
+        }
+
         Map.prototype.handleExtrude = function () {
             this._isExtruding = true
             this._extrudeEvent = this.map().data.addListener('addfeature', ({feature}) => {
@@ -472,24 +498,7 @@
 
             this.$map.on('click', '.js-add_place_by_address', (e) => {
                 e.preventDefault();
-
-                var value = this.element().find('.js-address').text();
-                if (!value) {
-                    // No value specified, no need to go further
-                    return false;
-                }
-
-                // @TODO: add marker by address
-
-                // that.map().add_place_by_address('object' + that.object_index(), value, {
-                //     type: 'marker',
-                //     draggable: true,
-                //     editable: true,
-                //     // After loading the marker object
-                //     loaded_callback: function (marker) {
-                //         that.map().map().setCenter(marker.object().getPosition());
-                //     }
-                // });
+                this.addPointByAddress()
             });
 
             this.$map.on('click', '.js-reset', (e) => {
@@ -500,7 +509,22 @@
             // Handle keyboard shortcuts
             $(document).on('keydown', this.$map, e => {
                 if (e.isComposing || e.keyCode === 229) {
-                    return;
+                    return
+                }
+
+                if (this.element().find('.js-address').is(':focus')) {
+                    switch (e.keyCode) {
+                        case KeyCodes.KEY_RETURN:
+                        case KeyCodes.KEY_ENTER:
+                            this.addPointByAddress()
+                            break
+                    }
+                    return
+                }
+
+                // These keybindings should only be used while there is a feature currently selected
+                if (!this._selectedFeature) {
+                    return
                 }
 
                 switch (e.keyCode) {
