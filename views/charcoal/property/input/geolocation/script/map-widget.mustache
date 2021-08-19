@@ -672,6 +672,7 @@
 
             $(document).off('keydown', this.$map)
             this.$map.off();
+            google.maps.event.clearInstanceListeners(this.map())
         }
 
         Charcoal.Admin.Input_Geolocation_Map_Widget = Map;
