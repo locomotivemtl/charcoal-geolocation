@@ -235,7 +235,7 @@
                 this.displayPolygonExtrusionControls(feature)
             }
 
-            this.displayEditToolbar()
+            this.selectTool()
         }
 
         Map.prototype.displayPolygonExtrusionControls = function (feature) {
@@ -284,15 +284,6 @@
         }
 
         Map.prototype.selectTool = function (geometry) {
-            // If clicking on the active tool, deactivate edition instead.
-            if (!geometry) {
-                this.setDrawingMode(null)
-
-                this.hide_marker_toolbar()
-                this.hideEditToolbar()
-                return
-            }
-
             if (geometry === 'Point') {
                 this.display_marker_toolbar()
             } else {
@@ -311,7 +302,7 @@
                 this.clearSelection()
 
             this.setDrawingMode(null)
-            this.setDrawingMode(mode)
+            this.selectTool(mode)
         }
 
         Map.prototype.handleExtrude = function () {
