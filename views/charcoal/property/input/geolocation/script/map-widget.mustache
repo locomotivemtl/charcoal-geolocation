@@ -42,6 +42,7 @@
             this._selectedFeature = null;
             this._isExtruding = false
             this._extrudeEvent = undefined;
+            this._bounds = undefined;
 
             // references
             this.$map = this.element();
@@ -200,7 +201,13 @@
                 stylers: [ { visibility: 'off' } ]
             } ]);
 
-            // this.controller().remove_focus();
+            this._bounds = new google.maps.LatLngBounds();
+
+            this.map().data.addListener('addfeature', e => {
+                this.extractPointsFromGeometry(e.feature.getGeometry(), point => this._bounds.extend(point))
+                this.map().setCenter(this._bounds.getCenter());
+                this.map().fitBounds(this._bounds);
+            })
         };
 
         /**
@@ -377,9 +384,17 @@
                 this.deleteSelection()
                 this.hideEditToolbar()
             }
+
+            this.resetBounds()
         }
 
         Map.prototype.clearSelection = function (event) {
+            if (this._selectedFeature) {
+                // There is a possibility that a geometry as changed or has been moved, so we have to process the bounding
+                // box again
+                this.resetBounds()
+            }
+
             this.map().data.forEach(feature => feature.setProperty('selected', false))
             this.$map.trigger('clearSelection')
             this._selectedFeature = null
@@ -508,6 +523,30 @@
         Map.prototype.map = function () {
             return this._map;
         };
+
+        /**
+         * Parse a geometry to retrieve all points, then calls the callback functions passing the LatLng as param
+         * @return void
+         */
+        Map.prototype.extractPointsFromGeometry = function (geometry, callback) {
+            if (geometry instanceof google.maps.LatLng) {
+                callback(geometry)
+            } else if (geometry instanceof google.maps.Data.Point) {
+                callback(geometry.get())
+            } else {
+                geometry.getArray().forEach(g => {
+                    this.extractPointsFromGeometry(g, callback)
+                });
+            }
+        }
+
+        Map.prototype.resetBounds = function () {
+            this._bounds = new google.maps.LatLngBounds();
+
+            this.map().data.forEach(feature => {
+                this.extractPointsFromGeometry(feature.getGeometry(), point => this._bounds.extend(point))
+            })
+        }
 
         Map.prototype.display_marker_toolbar = function () {
             this.$map_maker.addClass('is-header-open');
