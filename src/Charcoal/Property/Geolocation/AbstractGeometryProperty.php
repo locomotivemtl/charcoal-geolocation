@@ -15,7 +15,7 @@ use Pimple\Container;
  * Property base to save Geometry data using the WKT format
  * {@see https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry}
  *
- * These property can save to mysql from the GeoJSON format and read WKT from database to GeoJSON
+ * These properties can save to mysql from the GeoJSON format and read WKT from database to GeoJSON
  * {@see https://en.wikipedia.org/wiki/GeoJSON}
  *
  * Conversions between both format is made in MySQL and functions to analyse spatial data is also available
@@ -30,6 +30,11 @@ abstract class AbstractGeometryProperty extends AbstractProperty implements
     use GeoJSONGeometriesTrait;
 
     /**
+     * Set sql type based on allowed geometries and multiple flag.
+     * for a list a valid sql geometry types :
+     *         - {@see GeoJSONGeometriesInterface::MYSQL_GEOMETRY_MAP}
+     *         - {@see GeoJSONGeometriesInterface::MYSQL_MULTI_GEOMETRY_MAP}
+     *
      * @return string
      */
     public function sqlType(): string
@@ -38,7 +43,13 @@ abstract class AbstractGeometryProperty extends AbstractProperty implements
             return GeoJsonGeometriesInterface::MYSQL_GEOMETRY_COLLECTION;
         }
 
-        return GeoJsonGeometriesInterface::MYSQL_GEOMETRY_MAP[array_keys($this->getGeometries())[0]];
+        $geometryType = array_keys($this->getGeometries())[0];
+
+        if ($this->getMultiple()) {
+            return GeoJsonGeometriesInterface::MYSQL_MULTI_GEOMETRY_MAP[$geometryType];
+        }
+
+        return GeoJsonGeometriesInterface::MYSQL_GEOMETRY_MAP[$geometryType];
     }
 
     /**
