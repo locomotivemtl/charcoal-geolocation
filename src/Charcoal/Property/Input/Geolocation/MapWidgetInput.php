@@ -3,6 +3,7 @@
 namespace Charcoal\Property\Input\Geolocation;
 
 use Charcoal\Admin\Property\AbstractPropertyInput;
+use Charcoal\Geolocation\Model\GeometryConfigInterface;
 use Charcoal\Property\GeoJSONGeometriesInterface;
 use Charcoal\Property\GeoJSONGeometriesTrait;
 use InvalidArgumentException;
@@ -131,8 +132,9 @@ class MapWidgetInput extends AbstractPropertyInput implements
     public function defaultMapOptions(): array
     {
         $options = [
-            'api_key'  => $this->apiKey(),
-            'multiple' => true,
+            'api_key'    => $this->apiKey(),
+            'multiple'   => true,
+            'geometries' => $this->parseGeometriesForGeoJSON($this->getGeometries()),
         ];
 
         if (isset($this->mapConfig)) {
@@ -149,6 +151,23 @@ class MapWidgetInput extends AbstractPropertyInput implements
         }
 
         return $options;
+    }
+
+    /**
+     * Parse an array of geometry configurations so that the keys are GeoJSON compatible.
+     * example : Point
+     *
+     * @param GeometryConfigInterface[] $geometries Array of geometry configurations.
+     * @return array
+     */
+    private function parseGeometriesForGeoJSON(array $geometries): array
+    {
+        $keys = array_keys($geometries);
+        $keys = array_map(function ($key) {
+            return ucfirst($key);
+        }, $keys);
+
+        return array_combine($keys, $geometries);
     }
 
     /**
@@ -180,7 +199,13 @@ class MapWidgetInput extends AbstractPropertyInput implements
      */
     public function mapTools(): array
     {
-        return $this->getGeometries();
+        $geometries = array_keys($this->getGeometries());
+
+        return [
+            self::POINT       => in_array(self::POINT, $geometries),
+            self::LINE_STRING => in_array(self::LINE_STRING, $geometries),
+            self::POLYGON     => in_array(self::POLYGON, $geometries),
+        ];
     }
 
     /**
