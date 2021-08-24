@@ -51,9 +51,7 @@
             this.$map_maker = this.$map.find('.js-map-maker');
 
             this._map_options = data.data.map_options;
-            this._multiple = data.data.map_options.multiple;
-            // Never send multiple true to BB gmap
-            this._map_options.multiple = false;
+            this._multiple = data.data.multiple;
 
             return this;
         };
@@ -654,14 +652,15 @@
         };
 
         Map.prototype.countFeatures = function(type = null) {
-            if (type) {
-                let counter = 0;
-                this.map().data.forEach(feature => feature.getGeometry().getType() === type && counter++)
+            let counter = 0;
 
-                return counter
+            if (type) {
+                this.map().data.forEach(feature => feature.getGeometry().getType() === type && counter++)
+            } else {
+                this.map().data.forEach(feature => counter++)
             }
 
-            return this.map().data.count()
+            return counter
         }
 
         /**
@@ -669,6 +668,17 @@
          * This method should be called on init and whenever a feature is added of removed from the map
          */
         Map.prototype.handleMaxItems = function () {
+
+            if (this._multiple === false && this.countFeatures() >= 1) {
+                for (featureType in this.map_options.geometries) {
+                    this.$map.find(`.js-tool-select-button[data-geometry=\"${featureType}\"]`).toggleClass('is-locked', true)
+                    this._maxReached[featureType] = true
+                }
+
+                // This validation should prevent further processing
+                return
+            }
+
             for (featureType in this.map_options.geometries) {
                 const numFeatures = this.countFeatures(featureType);
                 const max = this.isFeatureConfig(featureType, 'max', (value) => numFeatures >= value)

@@ -133,7 +133,6 @@ class MapWidgetInput extends AbstractPropertyInput implements
     {
         $options = [
             'api_key'    => $this->apiKey(),
-            'multiple'   => true,
             'geometries' => $this->parseGeometriesForGeoJSON($this->getGeometries()),
         ];
 
