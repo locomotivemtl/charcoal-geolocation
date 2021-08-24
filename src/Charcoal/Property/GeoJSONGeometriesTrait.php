@@ -2,7 +2,8 @@
 
 namespace Charcoal\Property;
 
-use Charcoal\Property\Input\Geolocation\MapWidgetInput;
+use Charcoal\Factory\FactoryInterface;
+use Charcoal\Geolocation\Model\GeometryConfigInterface;
 use Exception;
 use InvalidArgumentException;
 
@@ -10,8 +11,10 @@ use InvalidArgumentException;
  * Trait: GeoJSONGeometriesTrait
  * @package Charcoal\Property
  *
- *           A collection of GeoJSON compatible terminology as constants
- *          And a geometry prop
+ *           A geometry property compatible trait to handle geometries setter/getter
+ *           Also parses the geometries' data as GeoJSON compatible data with support for options related to map input.
+ *           Individual geometries are cast into geometry specific classes to streamline the map options attributions
+ *           process.
  */
 trait GeoJSONGeometriesTrait
 {
@@ -19,18 +22,23 @@ trait GeoJSONGeometriesTrait
      * List of all allowed geometries.
      * This can be a list of geometries with their options :
      * [
-     *      "multiPoint": {
-     *          "limit": 5
+     *      "Point": {
+     *          "max": 5
      *      },
-     *      "multiPolygon": {
-     *          "limit": 4,
-     *          "maxPoints": 15
+     *      "Polygon": {
+     *          "max": 4,
+     *          "allowExtrusion": true
      *      }
      * ]
      *
      * @var array
      */
     private $geometries;
+
+    /**
+     * @var FactoryInterface $geometryConfigFactory
+     */
+    private $geometryConfigFactory;
 
     /**
      * @param string $type The geometry to test.
@@ -46,7 +54,11 @@ trait GeoJSONGeometriesTrait
      */
     public function getGeometries(): array
     {
-        return $this->geometries ?: GeoJSONGeometriesInterface::GEOMETRY_LIST;
+        if (!$this->geometries) {
+            $this->setGeometries(GeoJSONGeometriesInterface::GEOMETRY_LIST);
+        }
+
+        return $this->geometries;
     }
 
     /**
@@ -66,9 +78,13 @@ trait GeoJSONGeometriesTrait
                 if (!$this->isAllowedGeometry($type)) {
                     throw new InvalidArgumentException(sprintf(
                         'Invalid Geolocation type provided for property [%s], received [%s]',
-                        $this->inputName(),
+                        $this->ident(),
                         $type
                     ));
+                }
+
+                if (!$data instanceof GeometryConfigInterface) {
+                    $data = $this->getGeometryConfigFactory()->create($type)->setData($data);
                 }
 
                 $this->geometries[$type] = $data;
@@ -84,9 +100,33 @@ trait GeoJSONGeometriesTrait
                     ));
                 }
 
-                $this->geometries[$type] = [];
+                $this->geometries[$type] = $this->getGeometryConfigFactory()->create($type);
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * @return FactoryInterface
+     * @throws Exception When a dependency is missing.
+     */
+    public function getGeometryConfigFactory(): FactoryInterface
+    {
+        if (!$this->geometryConfigFactory instanceof FactoryInterface) {
+            throw new Exception('Missing geometry config factory dependency');
+        }
+
+        return $this->geometryConfigFactory;
+    }
+
+    /**
+     * @param FactoryInterface $geometryConfigFactory GeometryConfigFactory for GeoJSONGeometriesTrait.
+     * @return self
+     */
+    public function setGeometryConfigFactory(FactoryInterface $geometryConfigFactory): self
+    {
+        $this->geometryConfigFactory = $geometryConfigFactory;
 
         return $this;
     }

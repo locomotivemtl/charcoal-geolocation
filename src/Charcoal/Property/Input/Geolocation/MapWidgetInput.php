@@ -237,26 +237,7 @@ class MapWidgetInput extends AbstractPropertyInput implements
         if (isset($container['map/config'])) {
             $this->mapConfig = $container['map/config'];
         }
-    }
 
-    // /**
-    //  * @return string
-    //  * @throws UnexpectedValueException If the value is invalid.
-    //  * @uses   AbstractProperty::inputVal() Must handle string sanitization of value.
-    //  */
-    // public function inputVal()
-    // {
-    //     $val = parent::inputVal();
-    //
-    //     $val = json_decode($val, true);
-    //     if (is_array($val)) {
-    //         $val = array_reduce($val, function ($carry = '', $value = []) {
-    //             return ltrim(implode(' ', [$carry, implode(',', $value)]), ' ');
-    //         });
-    //     }
-    //
-    //     error_log(var_export($val, true));
-    //
-    //     return json_encode($val);
-    // }
+        $this->setGeometryConfigFactory($container['geolocation/geometry-config/factory']);
+    }
 }

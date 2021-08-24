@@ -7,6 +7,7 @@ use Charcoal\Property\GeoJSONGeometriesInterface;
 use Charcoal\Property\GeoJSONGeometriesTrait;
 use Charcoal\Translator\Translation;
 use PDO;
+use Pimple\Container;
 
 /**
  * Abstract Geometry Property
@@ -159,5 +160,16 @@ abstract class AbstractGeometryProperty extends AbstractProperty implements
         return function ($select) {
             return 'ST_AsGeoJSON(' . $select . ')';
         };
+    }
+
+    /**
+     * @param Container $container A Pimple DI container.
+     * @return void
+     */
+    protected function setDependencies(Container $container)
+    {
+        parent::setDependencies($container);
+
+        $this->setGeometryConfigFactory($container['geolocation/geometry-config/factory']);
     }
 }
