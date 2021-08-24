@@ -43,6 +43,7 @@
             this._isExtruding = false
             this._extrudeEvent = undefined;
             this._bounds = undefined;
+            this._maxReached = [];
 
             // references
             this.$map = this.element();
@@ -143,13 +144,6 @@
                 }
             };
 
-            this.default_place_opts = {
-                style: this.default_styles,
-                editable: true,
-                multiple: true,
-                draggable: true
-            };
-
             this.map_options = $.extend(true, this.default_map_options, this._map_options);
         };
 
@@ -184,8 +178,8 @@
                     ...(selected && {
                         strokeWeight: 5,
                         fillOpacity: 0.6,
-                        draggable: !this._isExtruding && !this.isDrawing(),
-                        editable: !this._isExtruding && !this.isDrawing(),
+                        draggable: !this._isExtruding && !this.isDrawing() && this.isFeatureConfig(feature, 'draggable', true),
+                        editable: !this._isExtruding && !this.isDrawing() && this.isFeatureConfig(feature, 'editable', true),
                         opacity: 1,
                         ...(this._isExtruding && {
                             strokeColor: '#f56060',
@@ -232,6 +226,17 @@
             return this
         };
 
+        Map.prototype.isFeatureConfig = function (feature, option, value) {
+            const type = feature instanceof google.maps.Data.Feature ? feature.getGeometry().getType() : feature
+            const config = this.map_options.geometries[type][option]
+
+            if (typeof value === 'function') {
+                return value(config)
+            }
+
+            return config === value ?? false
+        }
+
         Map.prototype.selectFeature = function (feature) {
             this.clearSelection()
             feature.setProperty('selected', true)
@@ -247,6 +252,10 @@
 
         Map.prototype.displayPolygonExtrusionControls = function (feature) {
             this.removePolygonExtrusionControls()
+
+            if (this.isFeatureConfig(feature, 'allowExtrusions', false)) {
+                return;
+            }
 
             this.$map.on('clearSelection', this.removePolygonExtrusionControls.bind(this))
             this.$map.on('deleteSelection', this.removePolygonExtrusionControls.bind(this))
@@ -465,11 +474,21 @@
 
             // Called on feature creation
             this.map().data.addListener('addfeature', ({feature}) => {
+                this.handleMaxItems()
 
                 if (!this._isExtruding) {
                     this.setDrawingMode(null)
                     this.selectFeature(feature)
                 }
+
+                // Update input value
+                this.map().data.toGeoJson((data) => {
+                    this.$map.find('input[type=hidden]').val(JSON.stringify(data));
+                });
+            })
+
+            this.map().data.addListener('removefeature', () => {
+                this.handleMaxItems()
 
                 // Update input value
                 this.map().data.toGeoJson((data) => {
@@ -612,19 +631,52 @@
 
                 }
             } else {
-                switch (this._selectedFeature?.getGeometry().getType()) {
+                let type = this._selectedFeature?.getGeometry().getType()
+
+                // Handle the display of the 'add' button based on max geometry for selected feature
+                this.$map.find('.js-add').toggleClass('is-locked', this._maxReached[type])
+
+                switch (type) {
                     case 'Point':
-                        // this.$map.find('.js-add').addClass('is-disabled')
                         this.$map.find('.js-extrude').addClass('is-disabled')
                         break
                     case 'LineString':
                         this.$map.find('.js-extrude').addClass('is-disabled')
                         break
+                    case 'Polygon':
+                        if (this.isFeatureConfig(this._selectedFeature, 'allowExtrusions', false)) {
+                            this.$map.find('.js-extrude').addClass('is-disabled')
+                        }
                 }
             }
 
             this.$map.find('.js-geotoolbox').addClass('edit_actions_active')
         };
+
+        Map.prototype.countFeatures = function(type = null) {
+            if (type) {
+                let counter = 0;
+                this.map().data.forEach(feature => feature.getGeometry().getType() === type && counter++)
+
+                return counter
+            }
+
+            return this.map().data.count()
+        }
+
+        /**
+         * Test the amount of each features on the map by types and alter the controls accordingly
+         * This method should be called on init and whenever a feature is added of removed from the map
+         */
+        Map.prototype.handleMaxItems = function () {
+            for (featureType in this.map_options.geometries) {
+                const numFeatures = this.countFeatures(featureType);
+                const max = this.isFeatureConfig(featureType, 'max', (value) => numFeatures >= value)
+
+                this.$map.find(`.js-tool-select-button[data-geometry=\"${featureType}\"]`).toggleClass('is-locked', max)
+                this._maxReached[featureType] = max
+            }
+        }
 
         Map.prototype.hideEditToolbar = function () {
             this.$map.find('.js-geotoolbox').removeClass('edit_actions_active')
@@ -640,7 +692,6 @@
             // Get current map state from DB
             // This is located in the hidden input
             var current_value = this.$map_input.val();
-            var default_place_opts = this.default_place_opts;
 
             if (current_value) {
                 // this.map().data.addGeoJson(JSON.parse(current_value))
@@ -660,6 +711,9 @@
                 }
 
                 this.map().data.addGeoJson(parsedGeoJSON)
+
+                // Process max items for each features to block access to related controls if needed
+                this.handleMaxItems()
             }
         };
 

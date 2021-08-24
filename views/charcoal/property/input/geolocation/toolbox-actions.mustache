@@ -52,6 +52,12 @@
             transition: margin .2s cubic-bezier(.67,.83,.1,.7) 0.2s, opacity 0.2s cubic-bezier(.67,.83,.1,.7) 0.2s;
         }
 
+        .o-geotoolbox_button.is-locked,
+        .edit_actions_active .o-geotoolbox_edit_actions_button.is-locked {
+            filter: brightness(0.6);
+            pointer-events: none;
+        }
+
         .o-toolbox_edit_actions button {
             /*margin: 0;*/
         }
