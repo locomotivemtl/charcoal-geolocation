@@ -20,9 +20,6 @@ interface GeoJSONGeometriesInterface
     public const MYSQL_POINT               = 'POINT';
     public const MYSQL_LINE_STRING         = 'LINESTRING';
     public const MYSQL_POLYGON             = 'POLYGON';
-    public const MYSQL_MULTI_POINT         = 'MULTIPOINT';
-    public const MYSQL_MULTI_LINE_STRING   = 'MULTILINESTRING';
-    public const MYSQL_MULTI_POLYGON       = 'MULTIPOLYGON';
     public const MYSQL_GEOMETRY_COLLECTION = 'GEOMETRYCOLLECTION';
 
     /**
@@ -45,17 +42,6 @@ interface GeoJSONGeometriesInterface
         self::POINT       => self::MYSQL_POINT,
         self::LINE_STRING => self::MYSQL_LINE_STRING,
         self::POLYGON     => self::MYSQL_POLYGON,
-    ];
-
-    /**
-     * The mySql geometry types mapping for multi geometries.
-     *
-     * @var array
-     */
-    public const MYSQL_MULTI_GEOMETRY_MAP = [
-        self::POINT       => self::MYSQL_MULTI_POINT,
-        self::LINE_STRING => self::MYSQL_MULTI_LINE_STRING,
-        self::POLYGON     => self::MYSQL_MULTI_POLYGON,
     ];
 
     /**

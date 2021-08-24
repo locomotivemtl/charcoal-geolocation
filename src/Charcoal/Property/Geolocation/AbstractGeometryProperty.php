@@ -33,7 +33,6 @@ abstract class AbstractGeometryProperty extends AbstractProperty implements
      * Set sql type based on allowed geometries and multiple flag.
      * for a list a valid sql geometry types :
      *         - {@see GeoJSONGeometriesInterface::MYSQL_GEOMETRY_MAP}
-     *         - {@see GeoJSONGeometriesInterface::MYSQL_MULTI_GEOMETRY_MAP}
      *
      * @return string
      */
@@ -44,11 +43,6 @@ abstract class AbstractGeometryProperty extends AbstractProperty implements
         }
 
         $geometryType = array_keys($this->getGeometries())[0];
-
-        if ($this->getMultiple()) {
-            return GeoJsonGeometriesInterface::MYSQL_MULTI_GEOMETRY_MAP[$geometryType];
-        }
-
         return GeoJsonGeometriesInterface::MYSQL_GEOMETRY_MAP[$geometryType];
     }
 
