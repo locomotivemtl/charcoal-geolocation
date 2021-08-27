@@ -102,6 +102,14 @@
             this.load_data();
 
             this.register_map_actions();
+
+            // Little hack to center the map when the BS tab gets focus
+            $(document).on('shown.bs.tab.'+this.opts().id, '[data-toggle="tab"]', (event) => {
+                if (this.element().parents('.js-group-tab.active').length) {
+                    this.map().setCenter(this._bounds.getCenter());
+                    this.map().fitBounds(this._bounds);
+                }
+            });
         };
 
         Map.prototype.init_configs = function () {
@@ -758,6 +766,7 @@
             this.save();
 
             $(document).off('keydown', this.$map)
+            $(document).off('shown.bs.tab.'+this.opts().id)
             this.$map.off();
             google.maps.event.clearInstanceListeners(this.map())
         }
