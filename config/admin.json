@@ -1,0 +1,11 @@
+{
+    "admin": {
+        "routes": {
+            "scripts": {
+                "geolocation/convert": {
+                    "ident": "charcoal/admin/script/geolocation/convert"
+                }
+            }
+        }
+    }
+}
